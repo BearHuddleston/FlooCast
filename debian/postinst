@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        pip3 install --break-system-packages sounddevice pystray notify-py || true
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
