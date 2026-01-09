@@ -67,6 +67,14 @@ dpkg-buildpackage -us -uc -b
 
 The package will be created in the parent directory.
 
+## Installing .deb Package
+
+```bash
+sudo apt install ./flocast_*.deb
+```
+
+Using `apt install` (not `dpkg -i`) ensures dependencies are automatically resolved.
+
 ## License
 
 BSD 3-Clause License. See [LICENSE](LICENSE) for details.
