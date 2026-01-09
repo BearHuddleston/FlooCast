@@ -146,8 +146,8 @@ wheels = [
 ]
 
 [[package]]
-name = "flocast"
-version = "1.1.6"
+name = "floocast"
+version = "1.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },
