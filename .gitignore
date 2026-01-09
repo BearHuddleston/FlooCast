@@ -1,6 +1,8 @@
 # Default ignored files
 /.idea
-/__pycache__
+__pycache__/
+*.pyc
+.venv/
 /dist
 /build
 *.exe
@@ -11,8 +13,8 @@
 debian/.debhelper/
 debian/debhelper-build-stamp
 debian/files
-debian/flocast.substvars
-debian/flocast/
+debian/floocast.substvars
+debian/floocast/
 *.deb
 *.buildinfo
 *.changes
