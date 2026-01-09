@@ -31,7 +31,6 @@ class FlooParser:
         FlooMsgBm.HEADER: FlooMsgBm.create_valid_msg,
         FlooMsgBn.HEADER: FlooMsgBn.create_valid_msg,
         FlooMsgFn.HEADER: FlooMsgFn.create_valid_msg,
-        FlooMsgOk.HEADER: FlooMsgOk.create_valid_msg,
         FlooMsgEr.HEADER: FlooMsgEr.create_valid_msg,
         FlooMsgAc.HEADER: FlooMsgAc.create_valid_msg,
         FlooMsgLf.HEADER: FlooMsgLf.create_valid_msg,
@@ -52,7 +51,6 @@ class FlooParser:
             return FlooParser.MSG_HEADERS[msgHeader](pkt)
         else:
             return FlooMsgUnknown(False)
-        return None
 
     def run(self, pkt: bytes) -> FlooMessage:
         return self.create_valid_message(pkt)

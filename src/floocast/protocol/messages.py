@@ -37,7 +37,7 @@ class FlooMessage:
         if isSend:
             self.bytes.extend(bytes("BC:", "ascii"))
         self.bytes.extend(bytes(header, "ascii"))
-        if payload != None:
+        if payload is not None:
             self.bytes.extend(bytes("=", "ascii"))
             self.bytes.extend(payload)
         self.bytes.extend(bytes("\r\n", "ascii"))
@@ -80,7 +80,7 @@ class FlooMsgAc(FlooMessage):
         self.sduInterval = sduInterval
         self.transportDelay = transportDelay
         self.presentDelay = presentDelay
-        if codec != None:
+        if codec is not None:
             adaptiveStr = (
                 "%02X" % codec
                 + ","
@@ -187,7 +187,7 @@ class FlooMsgAm(FlooMessage):
 
     def __init__(self, isSend, mode=None):
         self.mode = mode
-        if mode != None:
+        if mode is not None:
             modStr = "%02X" % mode
             super().__init__(isSend, FlooMsgAm.HEADER, bytes(modStr, "ascii"))
         else:
@@ -250,7 +250,7 @@ class FlooMsgBm(FlooMessage):
 
     def __init__(self, isSend, mode=None):
         self.mode = mode
-        if mode != None:
+        if mode is not None:
             modStr = "%02X" % mode
             super().__init__(isSend, FlooMsgBm.HEADER, bytes(modStr, "ascii"))
         else:
@@ -421,7 +421,7 @@ class FlooMsgFt(FlooMessage):
 
     def __init__(self, isSend, feature=None):
         self.feature = feature
-        if feature != None:
+        if feature is not None:
             featureStr = "%02X" % feature
             super().__init__(isSend, FlooMsgFt.HEADER, bytes(featureStr, "ascii"))
         else:
@@ -463,7 +463,7 @@ class FlooMsgLa(FlooMessage):
 
     def __init__(self, isSend, state=None):
         self.state = state
-        if state != None:
+        if state is not None:
             stateStr = "%02X" % state
             super().__init__(isSend, FlooMsgLa.HEADER, bytes(stateStr, "ascii"))
         else:
@@ -488,7 +488,7 @@ class FlooMsgLf(FlooMessage):
 
     def __init__(self, isSend, mode=None):
         self.mode = mode
-        if mode != None:
+        if mode is not None:
             modStr = "%02X" % mode
             super().__init__(isSend, FlooMsgLf.HEADER, bytes(modStr, "ascii"))
         else:
@@ -513,7 +513,7 @@ class FlooMsgMd(FlooMessage):
 
     def __init__(self, isSend, mode=None):
         self.mode = mode
-        if mode != None:
+        if mode is not None:
             modStr = "%02X" % mode
             super().__init__(isSend, FlooMsgMd.HEADER, bytes(modStr, "ascii"))
         else:
@@ -593,7 +593,7 @@ class FlooMsgSt(FlooMessage):
 
     def __init__(self, isSend, state=None):
         self.state = state
-        if state != None:
+        if state is not None:
             stateStr = "%02X" % state
             super().__init__(isSend, FlooMsgSt.HEADER, bytes(stateStr, "ascii"))
         else:
