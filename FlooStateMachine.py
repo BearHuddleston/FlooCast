@@ -373,7 +373,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
     def _attemptAutoReconnect(self):
         prevState = self._sourceStateBeforeDisconnect
         currState = self.sourceState
-        print(f"[FlooStateMachine] _attemptAutoReconnect: prevState={prevState}, currState={currState}")
+        print(
+            f"[FlooStateMachine] _attemptAutoReconnect: prevState={prevState}, currState={currState}"
+        )
         if prevState is not None and prevState >= 4 and currState == 1:
             self._reconnectAttempts = 0
             self._scheduleReconnect()
@@ -402,12 +404,18 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self._clearSavedState()
             return
         if self.sourceState >= 4:
-            print(f"[FlooStateMachine] Auto-reconnect: already connected (state={self.sourceState})")
+            print(
+                f"[FlooStateMachine] Auto-reconnect: already connected (state={self.sourceState})"
+            )
             return
         self._cancelReconnectTimer()
         delay = RETRY_DELAYS[min(self._reconnectAttempts, len(RETRY_DELAYS) - 1)]
-        print(f"[FlooStateMachine] Auto-reconnect: scheduling attempt {self._reconnectAttempts + 1} in {delay}ms")
-        wx.CallAfter(lambda: setattr(self, '_reconnectTimer', wx.CallLater(delay, self._doReconnect)))
+        print(
+            f"[FlooStateMachine] Auto-reconnect: scheduling attempt {self._reconnectAttempts + 1} in {delay}ms"
+        )
+        wx.CallAfter(
+            lambda: setattr(self, "_reconnectTimer", wx.CallLater(delay, self._doReconnect))
+        )
 
     def _doReconnect(self):
         self._reconnectAttempts += 1
@@ -418,7 +426,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             print(f"[FlooStateMachine] Auto-reconnect: state={self.sourceState}, retrying later")
             self._scheduleReconnect()
             return
-        print(f"[FlooStateMachine] Auto-reconnect: attempt {self._reconnectAttempts}, toggling device 0")
+        print(
+            f"[FlooStateMachine] Auto-reconnect: attempt {self._reconnectAttempts}, toggling device 0"
+        )
         self.toggleConnection(0)
         wx.CallAfter(lambda: wx.CallLater(3000, self._checkReconnectResult))
 
