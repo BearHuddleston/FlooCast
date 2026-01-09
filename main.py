@@ -273,7 +273,6 @@ class FlooCastTrayIcon:
     def __init__(self, frame):
         self.frame = frame
         self.icon = None
-        self._running = False
 
         icon_path = app_path + os.sep + appIcon
         if os.path.exists(icon_path):
@@ -293,9 +292,7 @@ class FlooCastTrayIcon:
         self.icon = pystray.Icon("FlooCast", self.image, "FlooCast", menu)
 
     def run(self):
-        if not self._running:
-            self._running = True
-            self.icon.run_detached()
+        self.icon.run_detached()
 
     def _restore_window(self):
         if not self.frame.IsShown():
