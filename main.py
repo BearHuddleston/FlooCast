@@ -4,7 +4,6 @@ import os
 import re
 import ssl
 import sys
-import threading
 import urllib.request
 
 import certifi
@@ -39,8 +38,8 @@ codecStr = [
     "aptX\u2122 Voice",
 ]
 
-mainWindowWidth = 950
-mainWindowHeight = 560
+mainWindowWidth = 1200
+mainWindowHeight = 700
 userLocale = wx.Locale.GetSystemLanguage()
 lan = wx.Locale.GetLanguageInfo(userLocale).CanonicalName
 
@@ -82,7 +81,7 @@ app = wx.App(False)
 settings = FlooSettings()
 startMinimized = bool(settings.get_item("start_minimized") or False)
 
-appFrame = wx.Frame(None, wx.ID_ANY, "FlooCast", size=wx.Size(mainWindowWidth, 560))
+appFrame = wx.Frame(None, wx.ID_ANY, "FlooCast", size=wx.Size(mainWindowWidth, mainWindowHeight))
 appFrame.SetIcon(wx.Icon(app_path + os.sep + appIcon))
 
 statusBar = appFrame.CreateStatusBar(name=_("Status Bar"))
@@ -296,8 +295,7 @@ class FlooCastTrayIcon:
     def run(self):
         if not self._running:
             self._running = True
-            thread = threading.Thread(target=self.icon.run, daemon=True)
-            thread.start()
+            self.icon.run_detached()
 
     def _restore_window(self):
         if not self.frame.IsShown():

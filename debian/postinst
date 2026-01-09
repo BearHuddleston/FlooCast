@@ -3,7 +3,10 @@ set -e
 
 case "$1" in
     configure)
-        pip3 install --break-system-packages sounddevice pystray notify-py || true
+        pkill -f "python.*main.py.*flocast" 2>/dev/null || true
+        pkill -f "/opt/flocast/main.py" 2>/dev/null || true
+        python3 -c "import sounddevice, pystray, notifypy" 2>/dev/null || \
+            pip3 install --break-system-packages sounddevice pystray notify-py || true
         ;;
 esac
 
