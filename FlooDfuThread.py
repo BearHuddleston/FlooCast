@@ -1,6 +1,10 @@
 import threading
 import time
 
+# NOTE: DFU (Device Firmware Upgrade) is not supported on Linux.
+# The HidDfu class requires proprietary Windows DLL (removed from open-source repo).
+# This file is kept for potential future Linux DFU support.
+
 class FlooDfuThread(threading.Thread):
     #
     # Pre-defined constants, 0~100 as progress

@@ -1,50 +1,80 @@
 # FlooCast
 
-A Python application that allows for the control and configuration of FlooGoo USB Bluetooth dongles.
+A Python application for configuring and controlling FlooGoo USB Bluetooth dongles (FMA120) on Debian/Ubuntu Linux.
 
-It configures a FlooGoo FMA120 Bluetooth dongle to pair and connect with a Bluetooth headset/speaker for streaming audio or making VoIP calls. It can also configure the dongle to work as an AuraCast sender.
+Features:
+- Pair and connect with Bluetooth headsets/speakers
+- Stream audio and make VoIP calls
+- AuraCast broadcast functionality
 
-The dongle functions as a standard USB audio speaker and microphone, requiring no drivers on Windows, macOS, or Linux.
+The dongle functions as a standard USB audio device requiring no drivers.
+
+## Prerequisites
+
+Install system dependencies:
+
+```bash
+sudo apt update
+sudo apt install python3-dev python3-wxgtk4.0 libsndfile1 gir1.2-appindicator3-0.1
+```
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Installation
 
-### Windows
-On Windows, the compiled App can be downloaded directly from Microsoft Store.
+Clone the repository and sync dependencies:
 
-### Linux/Mac
-
-Requires python 3.7+
-
-#### Configure Python Environment
-Create a virtual environment and install the required packages.
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+git clone <repo-url>
+cd FlooCast
+uv sync
 ```
 
-#### Running
-After configuring the environment, run `main.py` within it.
+## Running
+
 ```bash
-venv/bin/python main.py
+uv run python main.py
 ```
 
-If your dongle is not found, or if you see a permission denied error, check the [Platform specific notes/issues](#Platform-specific-notes/issues) section.
-You may also choose to run the command as root to ensure it has access to the serial device.
+## USB Permissions
+
+If you see "Permission denied: '/dev/ttyACM0'", add your user to the `dialout` group:
+
 ```bash
-sudo venv/bin/python main.py
+sudo usermod -a -G dialout $USER
 ```
 
-## Usage
+Then log out and log back in for the change to take effect.
 
-Once configured, the dongle can automatically reconnect to the most recently used device. Please check the support link for more advanced uses. 
- 
-## Platform specific notes/issues
+Alternatively, run as root:
 
-On Linux, if you run the app as a non-root user, you might get "Permission denied: '/dev/ttyACM0'" error. 
-Please verify the ttyACM0 device is the "dialout" user group and add your $USER to the group.
-You may take the following link as a reference,
-https://askubuntu.com/questions/133235/how-do-i-allow-non-root-access-to-ttyusb0
+```bash
+sudo uv run python main.py
+```
 
-## Acknowledgements
+## Building .deb Package
 
+To build a Debian package:
+
+```bash
+sudo apt install debhelper devscripts
+dpkg-buildpackage -us -uc -b
+```
+
+The package will be created in the parent directory.
+
+## Installing .deb Package
+
+```bash
+sudo apt install ./flocast_*.deb
+```
+
+Using `apt install` (not `dpkg -i`) ensures dependencies are automatically resolved.
+
+## License
+
+BSD 3-Clause License. See [LICENSE](LICENSE) for details.

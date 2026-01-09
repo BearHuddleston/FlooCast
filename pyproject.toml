@@ -1,0 +1,28 @@
+[project]
+name = "flocast"
+version = "1.1.6"
+description = "Configure and control FlooGoo USB Bluetooth dongles (FMA120)"
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "sounddevice",
+    "numpy",
+    "certifi",
+    "pillow",
+    "urllib3",
+    "pystray",
+    "notify-py",
+]
+
+[project.urls]
+Homepage = "https://www.flairmesh.com/Dongle/FMA120.html"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+only-include = ["*.py"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

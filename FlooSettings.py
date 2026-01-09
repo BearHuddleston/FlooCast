@@ -1,7 +1,7 @@
 from __future__ import annotations
-import json, os, sys, tempfile
+import json, os, tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 class FlooSettings:
@@ -9,7 +9,7 @@ class FlooSettings:
     Generic JSON settings store for FlooCast.
 
     - Arbitrary key/value storage (use any string as the key)
-    - Persisted to a cross-platform, user-writable location (MSIX-friendly on Windows)
+    - Persisted to ~/.config/FlooCast/ (XDG_CONFIG_HOME)
     - Includes helpers for saving/loading dict-based device info
     """
 
@@ -81,11 +81,5 @@ class FlooSettings:
 
     @staticmethod
     def _default_settings_path(app_name: str, filename: str) -> Path:
-        if sys.platform == "win32":
-            base = os.getenv("LOCALAPPDATA") or str(Path.home())
-            return Path(base) / app_name / filename
-        elif sys.platform == "darwin":
-            return Path.home() / "Library" / "Application Support" / app_name / filename
-        else:
-            cfg = os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config"))
-            return Path(cfg) / app_name / filename
+        cfg = os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        return Path(cfg) / app_name / filename
