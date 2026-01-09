@@ -1248,6 +1248,12 @@ class FlooSmDelegate(FlooStateMachineDelegate):
     def audioSourceInd(self, enabled):
         usb_input_enable_switch_set(enabled, True)
 
+    def connectionErrorInd(self, error: str):
+        if error == "port_busy":
+            update_status_bar(_("Port is busy - close other applications using the dongle"))
+        else:
+            update_status_bar(_("Connection error - please reconnect the dongle"))
+
 
 flooSmDelegate = FlooSmDelegate()
 flooSm = FlooStateMachine(flooSmDelegate)

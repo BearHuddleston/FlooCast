@@ -9,3 +9,7 @@ class FlooInterfaceDelegate:
     def handleMessage(self, message: FlooMessage):
         """The delegate shall handle the message got from the interface."""
         pass
+
+    def connectionError(self, error: str):
+        """Called when a connection error occurs."""
+        pass
