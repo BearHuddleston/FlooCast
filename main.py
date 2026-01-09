@@ -4,12 +4,14 @@ import os
 import re
 import ssl
 import sys
+import threading
 import urllib.request
 
 import certifi
+import pystray
 import wx
-import wx.adv
 import wx.lib.agw.hyperlink as hl
+from PIL import Image
 
 from FlooAuxInput import FlooAuxInput
 from FlooDfuThread import FlooDfuThread
@@ -268,82 +270,79 @@ audioModeSbSizer.Add(audioModeLowerPanel, flag=wx.EXPAND)  # , proportion=1
 # Window panel
 
 
-ID_SHOW = wx.NewIdRef()
-ID_MINIMIZE = wx.NewIdRef()
-ID_QUIT = wx.NewIdRef()
-
-
-class FlooCastTaskBarIcon(wx.adv.TaskBarIcon):
+class FlooCastTrayIcon:
     def __init__(self, frame):
-        super().__init__()
         self.frame = frame
+        self.icon = None
+        self._running = False
 
-        icon = wx.Icon(app_path + os.sep + appIcon, wx.BITMAP_TYPE_ICO)
-        self.SetIcon(icon, "FlooCast")
+        icon_path = app_path + os.sep + appIcon
+        if os.path.exists(icon_path):
+            self.image = Image.open(icon_path)
+        else:
+            self.image = Image.new("RGB", (64, 64), color="blue")
 
-        # Bind tray events
-        self.Bind(wx.EVT_MENU, self.on_show, id=ID_SHOW)
-        self.Bind(wx.EVT_MENU, self.on_minimize, id=ID_MINIMIZE)
-        self.Bind(wx.EVT_MENU, self.on_quit, id=ID_QUIT)
-        self.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, self.on_show)
+        self._create_icon()
 
-    def CreatePopupMenu(self):
-        menu = wx.Menu()
-        menu.Append(ID_SHOW, _("Show Window"))
-        menu.Append(ID_MINIMIZE, _("Minimize to System Tray"))
-        menu.AppendSeparator()
-        menu.Append(ID_QUIT, _("Quit"))
-        return menu
+    def _create_icon(self):
+        menu = pystray.Menu(
+            pystray.MenuItem(_("Show Window"), self._on_show, default=True),
+            pystray.MenuItem(_("Minimize to System Tray"), self._on_minimize),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(_("Quit"), self._on_quit),
+        )
+        self.icon = pystray.Icon("FlooCast", self.image, "FlooCast", menu)
 
-    # ---- helpers ----
-    def restore_window(self):
-        def _restore():
-            # 1) show if hidden
-            if not self.frame.IsShown():
-                self.frame.Show(True)
+    def run(self):
+        if not self._running:
+            self._running = True
+            thread = threading.Thread(target=self.icon.run, daemon=True)
+            thread.start()
 
-            # 2) un-minimize if iconized
-            if self.frame.IsIconized():
-                self.frame.Iconize(False)
-
-            # 3) bring to front
+    def _restore_window(self):
+        if not self.frame.IsShown():
+            self.frame.Show(True)
+        if self.frame.IsIconized():
+            self.frame.Iconize(False)
+        try:
+            self.frame.Restore()
+        except Exception:
+            pass
+        self.frame.Raise()
+        child = self.frame.FindFocus() or self.frame.FindWindowById(wx.ID_ANY)
+        (child or self.frame).SetFocus()
+        if not self.frame.IsActive():
             try:
-                self.frame.Restore()  # clear maximized/minimized state if needed
+                flag = getattr(wx, "USER_ATTENTION_INFO", 0)
+                self.frame.RequestUserAttention(flag)
             except Exception:
-                pass
-            self.frame.Raise()
-
-            # 4) ensure focus lands somewhere sensible
-            child = self.frame.FindFocus() or self.frame.FindWindowById(wx.ID_ANY)
-            (child or self.frame).SetFocus()
-
-            # optional: flash/bounce if not focused (safe across wx versions)
-            if not self.frame.IsActive():
                 try:
-                    flag = getattr(wx, "USER_ATTENTION_INFO", 0)  # gentle notify
-                    self.frame.RequestUserAttention(flag)
+                    self.frame.RequestUserAttention()
                 except Exception:
-                    try:
-                        self.frame.RequestUserAttention()  # some builds accept no arg
-                    except Exception:
-                        pass
+                    pass
 
-        # run immediately (keep your original structure)
-        _restore()
+    def _on_show(self, icon=None, item=None):
+        wx.CallAfter(self._restore_window)
 
-    # ---- event handlers ----
-    def on_show(self, event):
-        self.restore_window()
+    def _on_minimize(self, icon=None, item=None):
+        def _hide():
+            if not self.frame.IsIconized():
+                self.frame.Iconize(True)
+            if self.frame.IsShown():
+                self.frame.Hide()
 
-    def on_minimize(self, event):
-        # minimize to tray: mark minimized, then hide
-        if not self.frame.IsIconized():
-            self.frame.Iconize(True)
-        if self.frame.IsShown():
-            self.frame.Hide()
+        wx.CallAfter(_hide)
 
-    def on_quit(self, event):
-        self.frame.Close()
+    def _on_quit(self, icon=None, item=None):
+        def _close():
+            self.icon.stop()
+            self.frame.Close()
+
+        wx.CallAfter(_close)
+
+    def Destroy(self):
+        if self.icon:
+            self.icon.stop()
 
 
 def quit_all():
@@ -362,8 +361,8 @@ def hide_window(event):
         appFrame.Hide()
 
 
-windowIcon = FlooCastTaskBarIcon(appFrame)
-# appFrame.Bind(wx.EVT_ICONIZE, hide_window)
+windowIcon = FlooCastTrayIcon(appFrame)
+windowIcon.run()
 appFrame.Bind(wx.EVT_CLOSE, quit_window)
 
 windowSb = wx.StaticBox(appPanel, wx.ID_ANY, _("Window"))
