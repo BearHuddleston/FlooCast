@@ -25,6 +25,23 @@ from floocast.protocol.messages import (
 from floocast.settings import FlooSettings
 
 
+class SourceState:
+    """Source state constants."""
+
+    IDLE = 1
+    STREAMING_START = 4
+    STREAMING = 6
+
+
+class FeatureBit:
+    """Feature flag bit masks."""
+
+    LED = 0x01
+    APTX_LOSSLESS = 0x02
+    GATT_CLIENT = 0x04
+    AUDIO_SOURCE = 0x08
+
+
 def _wx_call_after(func, *args):
     import wx
 
@@ -59,7 +76,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         self._settings = FlooSettings()
         self._lastSavedState = None
         saved_state = self._settings.get_item("last_streaming_state")
-        if saved_state is not None and saved_state >= 4:
+        if saved_state is not None and saved_state >= SourceState.STREAMING_START:
             print(f"[FlooStateMachine] Restored last streaming state: {saved_state}")
             self._sourceStateBeforeDisconnect = saved_state
             self._clearSavedState()
@@ -160,17 +177,24 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             elif isinstance(message, FlooMsgFt):
                 if isinstance(self.lastCmd, FlooMsgFt):
                     self.feature = message.feature
-                    _wx_call_after(self.delegate.ledEnabledInd, message.feature & 0x01)
+                    _wx_call_after(self.delegate.ledEnabledInd, message.feature & FeatureBit.LED)
                     _wx_call_after(
                         self.delegate.aptxLosslessEnabledInd,
-                        1 if (message.feature & 0x02) == 0x02 else 0,
+                        1
+                        if (message.feature & FeatureBit.APTX_LOSSLESS) == FeatureBit.APTX_LOSSLESS
+                        else 0,
                     )
                     _wx_call_after(
                         self.delegate.gattClientEnabledInd,
-                        1 if (self.feature & 0x04) == 0x04 else 0,
+                        1
+                        if (self.feature & FeatureBit.GATT_CLIENT) == FeatureBit.GATT_CLIENT
+                        else 0,
                     )
                     _wx_call_after(
-                        self.delegate.audioSourceInd, 1 if (self.feature & 0x08) == 0x08 else 0
+                        self.delegate.audioSourceInd,
+                        1
+                        if (self.feature & FeatureBit.AUDIO_SOURCE) == FeatureBit.AUDIO_SOURCE
+                        else 0,
                     )
                     cmdGetCodecInUse = FlooMsgAc(True)
                     self.inf.sendMsg(cmdGetCodecInUse)
@@ -227,14 +251,18 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 elif isinstance(self.lastCmd, FlooMsgBn):
                     _wx_call_after(self.delegate.broadcastNameInd, self.broadcastName)
                 elif isinstance(self.lastCmd, FlooMsgFt):
-                    _wx_call_after(self.delegate.ledEnabledInd, self.feature & 0x01)
+                    _wx_call_after(self.delegate.ledEnabledInd, self.feature & FeatureBit.LED)
                     _wx_call_after(
                         self.delegate.aptxLosslessEnabledInd,
-                        1 if (self.feature & 0x02) == 0x02 else 0,
+                        1
+                        if (self.feature & FeatureBit.APTX_LOSSLESS) == FeatureBit.APTX_LOSSLESS
+                        else 0,
                     )
                     _wx_call_after(
                         self.delegate.gattClientEnabledInd,
-                        1 if (self.feature & 0x04) == 0x04 else 0,
+                        1
+                        if (self.feature & FeatureBit.GATT_CLIENT) == FeatureBit.GATT_CLIENT
+                        else 0,
                     )
                 self.lastCmd = None
                 self.pendingCmdPara = None
@@ -242,11 +270,14 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 print(f"[FlooStateMachine] ST message (CONNECTED): state={message.state}")
                 self.sourceState = message.state
                 _wx_call_after(self.delegate.sourceStateInd, message.state)
-                if message.state >= 4 and message.state != self._lastSavedState:
+                if (
+                    message.state >= SourceState.STREAMING_START
+                    and message.state != self._lastSavedState
+                ):
                     self._lastSavedState = message.state
                     self._settings.set_item("last_streaming_state", message.state)
                     self._settings.save()
-                if message.state == 4 or message.state == 6:
+                if message.state in (SourceState.STREAMING_START, SourceState.STREAMING):
                     self.getRecentlyUsedDevices()
             elif isinstance(message, FlooMsgLa):
                 _wx_call_after(self.delegate.leAudioStateInd, message.state)
@@ -271,12 +302,16 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 )
             elif isinstance(message, FlooMsgFt):
                 self.feature = message.feature
-                _wx_call_after(self.delegate.ledEnabledInd, self.feature & 0x01)
+                _wx_call_after(self.delegate.ledEnabledInd, self.feature & FeatureBit.LED)
                 _wx_call_after(
-                    self.delegate.aptxLosslessEnabledInd, 1 if (self.feature & 0x02) == 0x02 else 0
+                    self.delegate.aptxLosslessEnabledInd,
+                    1
+                    if (self.feature & FeatureBit.APTX_LOSSLESS) == FeatureBit.APTX_LOSSLESS
+                    else 0,
                 )
                 _wx_call_after(
-                    self.delegate.gattClientEnabledInd, 1 if (self.feature & 0x04) == 0x04 else 0
+                    self.delegate.gattClientEnabledInd,
+                    1 if (self.feature & FeatureBit.GATT_CLIENT) == FeatureBit.GATT_CLIENT else 0,
                 )
 
     def setAudioMode(self, mode: int):
@@ -382,7 +417,11 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         print(
             f"[FlooStateMachine] _attemptAutoReconnect: prevState={prevState}, currState={currState}"
         )
-        if prevState is not None and prevState >= 4 and currState == 1:
+        if (
+            prevState is not None
+            and prevState >= SourceState.STREAMING_START
+            and currState == SourceState.IDLE
+        ):
             self._reconnectAttempts = 0
             self._scheduleReconnect()
         else:
@@ -409,7 +448,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             print(f"[FlooStateMachine] Auto-reconnect: gave up after {MAX_RETRIES} attempts")
             self._clearSavedState()
             return
-        if self.sourceState >= 4:
+        if self.sourceState >= SourceState.STREAMING_START:
             print(
                 f"[FlooStateMachine] Auto-reconnect: already connected (state={self.sourceState})"
             )
@@ -425,7 +464,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def _doReconnect(self):
         self._reconnectAttempts += 1
-        if self.sourceState >= 4:
+        if self.sourceState >= SourceState.STREAMING_START:
             print("[FlooStateMachine] Auto-reconnect: already connected, cancelling")
             return
         if self.sourceState != 1:
@@ -439,7 +478,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         _wx_call_after(lambda: wx.CallLater(3000, self._checkReconnectResult))
 
     def _checkReconnectResult(self):
-        if self.sourceState >= 4:
+        if self.sourceState >= SourceState.STREAMING_START:
             print(f"[FlooStateMachine] Auto-reconnect: success! state={self.sourceState}")
             self._reconnectAttempts = 0
         elif self.sourceState == 1:
