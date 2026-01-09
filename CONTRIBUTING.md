@@ -16,7 +16,7 @@
 3. Install uv and sync dependencies with dev tools:
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
-   uv sync --dev
+   uv sync --extra dev
    ```
 
 4. Install pre-commit hooks:
