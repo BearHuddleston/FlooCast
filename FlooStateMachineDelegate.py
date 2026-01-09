@@ -51,3 +51,7 @@ class FlooStateMachineDelegate:
         """Called when FlooGoo device reports current setting of audio source"""
         pass
 
+    def connectionErrorInd(self, error: str):
+        """Called when a connection error occurs"""
+        pass
+

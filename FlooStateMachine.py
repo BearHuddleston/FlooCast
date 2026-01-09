@@ -72,6 +72,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self.state = FlooStateMachine.INIT
             wx.CallAfter(self.delegate.deviceDetected, False, None)
 
+    def connectionError(self, error: str):
+        wx.CallAfter(self.delegate.connectionErrorInd, error)
+
     def handleMessage(self, message: FlooMessage):
         print("FlooStateMachine: handleMessage " + message.header)
         if self.state == FlooStateMachine.INIT:
