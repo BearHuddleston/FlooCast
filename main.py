@@ -1,10 +1,7 @@
 # !/usr/bin/env python
 import gettext
-import locale
-import subprocess
 import re
 import os
-import platform
 import sys
 import wx
 import wx.adv
@@ -39,16 +36,8 @@ codecStr = ['None',
 
 mainWindowWidth = 950
 mainWindowHeight = 560
-if platform.system().lower().startswith('darwin'):
-    mainWindowWidth = 1200
-    mainWindowHeight = 640
-    preferLanguages = subprocess.run(['defaults', 'read', '-g', 'AppleLanguages'], stdout=subprocess.PIPE)
-    preferLanguage = preferLanguages.stdout.decode('utf-8').split('\n')[1]
-    lanSearch = re.search(r'(?<=\")\w+', preferLanguage.lstrip())
-    lan = lanSearch.group(0)
-else:
-    userLocale = wx.Locale.GetSystemLanguage()
-    lan = wx.Locale.GetLanguageInfo(userLocale).CanonicalName
+userLocale = wx.Locale.GetSystemLanguage()
+lan = wx.Locale.GetLanguageInfo(userLocale).CanonicalName
 
 # Set the local directory
 app_path = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -657,13 +646,8 @@ leBroadcastLatencyRadioPanel.Bind(wx.EVT_RADIOBUTTON, broadcast_latency_sel)
 leBroadcastAuxInputPanel = wx.Panel(leBroadcastSb)
 leBroadcastAuxInputPanelSizer = wx.FlexGridSizer(1, 2, (0, 0))
 
-saved_bs = settings.get_item("aux_blocksize")  # e.g., 128 or None
+saved_bs = settings.get_item("aux_blocksize")
 looper = FlooAuxInput(blocksize=saved_bs)
-# --- macOS specific latency profile ---
-if sys.platform == "darwin":
-    # choose one: "safe" 400ms | "low" 120ms | "ultra" 60ms | "jack" 250ms
-    profile = settings.get_item("aux_latency_profile", "ultra")
-    looper.set_latency_profile_mac(profile)
 auxInput = None
 inputDevices = looper.list_additional_inputs()
 nameInputDevices = {d["name"]: d for d in inputDevices}
@@ -970,7 +954,6 @@ def update_dfu_info(state: int):
         windowSb.Enable()
         broadcastAndPairedDevicePanel.Enable()
         settingsPanel.Enable()
-        dfuButton.Enable()
         dfuInfo.SetLabelText(_("Firmware") + " " + firmwareVersion)
         dfuUndergoing = False
     elif state > FlooDfuThread.DFU_STATE_DONE:
@@ -982,7 +965,6 @@ def update_dfu_info(state: int):
         versionPanelSizer.Show(dfuInfo)
         dfuInfo.SetLabelText(_("Upgrade progress") + (" %d" % state) + "%")
         if not dfuUndergoing:
-            dfuButton.Disable()
             audioModeSb.Disable()
             windowSb.Disable()
             broadcastAndPairedDevicePanel.Disable()
@@ -1012,11 +994,6 @@ def button_dfu(event):
                 dfuThread = FlooDfuThread([app_path, filename], update_dfu_info)
                 dfuThread.start()
 
-
-if platform.system().lower().startswith('win'):
-    dfuButton = wx.Button(versionPanel, wx.ID_ANY, label=_('Device Firmware Upgrade'))
-    dfuButton.Bind(wx.EVT_BUTTON, button_dfu)
-    versionPanelSizer.Add(dfuButton, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
 
 dfuInfo = wx.StaticText(versionPanel, wx.ID_ANY, "")
 versionPanelSizer.Add(dfuInfo, flag=wx.ALIGN_CENTER)
@@ -1061,14 +1038,10 @@ def enable_settings_widgets(enable: bool):
         pairedDevicesSb.Enable()
         thirdPartyLink.Refresh()
         supportLink.Refresh()
-        if platform.system().lower().startswith('win'):
-            dfuButton.Enable(not dfuUndergoing)
     else:
         audioModeSb.Disable()
         broadcastAndPairedDevicePanel.Disable()
         settingsPanel.Disable()
-        if platform.system().lower().startswith('win'):
-            dfuButton.Disable()
 
 
 enable_settings_widgets(False)

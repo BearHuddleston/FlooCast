@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/flocast/opt/flocast
+	cp -r *.py *.png *.gif *.ico locales $(CURDIR)/debian/flocast/opt/flocast/
+	install -d $(CURDIR)/debian/flocast/usr/share/applications
+	install -m 644 debian/flocast.desktop $(CURDIR)/debian/flocast/usr/share/applications/

@@ -1,4 +1,4 @@
-import time, os, sys, platform
+import time
 import serial
 import serial.tools.list_ports
 from FlooParser import FlooParser
@@ -41,12 +41,8 @@ class FlooInterface:
                 self.port_name = ports[0]
                 print("monitor_port: try open " + self.port_name)
                 try:
-                    if platform.system().lower().startswith('win'):
-                        self.port = serial.Serial(port=self.port_name, baudrate=921600,
-                                                  bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
-                    else:
-                        self.port = serial.Serial(port='/dev/' + self.port_name, baudrate=921600,
-                                                  bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+                    self.port = serial.Serial(port='/dev/' + self.port_name, baudrate=921600,
+                                              bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
                     # self.port.open()
                     self.port_opened = self.port.is_open
