@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgFd(FlooMessage):
     """
     BC:FD

@@ -1,5 +1,5 @@
 class FlooStateMachineDelegate:
-    def deviceDetected(self, flag: bool, port: str, version : str = None):
+    def deviceDetected(self, flag: bool, port: str, version: str = None):
         """Called when FlooGoo device connection state changes."""
         pass
 
@@ -54,4 +54,3 @@ class FlooStateMachineDelegate:
     def connectionErrorInd(self, error: str):
         """Called when a connection error occurs"""
         pass
-

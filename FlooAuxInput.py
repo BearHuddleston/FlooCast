@@ -5,7 +5,8 @@
 # Optional helper:
 #   - set_output_mapping([3,4])  # force device channel mapping if needed
 
-from typing import List, Dict, Optional, Sequence
+from collections.abc import Sequence
+
 import numpy as np
 import sounddevice as sd
 
@@ -41,8 +42,8 @@ class FlooAuxInput:
             raise ValueError("blocksize too large (max 4096)")
         return n
 
-    def __init__(self, blocksize: Optional[int] = None):
-        self._stream: Optional[sd.Stream] = None
+    def __init__(self, blocksize: int | None = None):
+        self._stream: sd.Stream | None = None
         self._running = False
 
         self._cap_channels = 1
@@ -50,12 +51,16 @@ class FlooAuxInput:
         self._rate = self.TARGET_RATE
         self._dtype = self.DTYPE
 
-        self._input_sel: Optional[Dict] = None
+        self._input_sel: dict | None = None
         self._input_disabled = False
 
-        self._blocksize = self._platform_default_blocksize() if blocksize is None else self._validate_blocksize(blocksize)
+        self._blocksize = (
+            self._platform_default_blocksize()
+            if blocksize is None
+            else self._validate_blocksize(blocksize)
+        )
 
-        self._last_start_name_hint: Optional[str] = None
+        self._last_start_name_hint: str | None = None
 
         self._xruns = 0
         self._debug = False
@@ -63,13 +68,13 @@ class FlooAuxInput:
         self._out_mapping = None
 
     # ------- Optional helper -------
-    def set_output_mapping(self, mapping: Optional[Sequence[int]]) -> None:
+    def set_output_mapping(self, mapping: Sequence[int] | None) -> None:
         """Optionally force output channel indices (1-based), e.g. [3,4]."""
         self._out_mapping = list(mapping) if mapping else None
 
     # -------------- Public API --------------
 
-    def list_additional_inputs(self) -> List[Dict]:
+    def list_additional_inputs(self) -> list[dict]:
         devs = self._sd_list_devices()
         chosen_backend = None
         available = {d["hostapi"] for d in devs if d["is_input"]}
@@ -79,30 +84,53 @@ class FlooAuxInput:
                 break
 
         if chosen_backend:
-            candidates = [d for d in devs if d["is_input"]
-                          and d["hostapi"] == chosen_backend
-                          and not self._is_blocklisted_input(d["name"])]
+            candidates = [
+                d
+                for d in devs
+                if d["is_input"]
+                and d["hostapi"] == chosen_backend
+                and not self._is_blocklisted_input(d["name"])
+            ]
         else:
-            candidates = [d for d in devs if d["is_input"]
-                          and not self._is_blocklisted_input(d["name"])]
+            candidates = [
+                d for d in devs if d["is_input"] and not self._is_blocklisted_input(d["name"])
+            ]
 
-        out: List[Dict] = [{
-            "id": None, "name": "None", "backend": "",
-            "sample_rate": None, "max_channels": None,
-        }]
+        out: list[dict] = [
+            {
+                "id": None,
+                "name": "None",
+                "backend": "",
+                "sample_rate": None,
+                "max_channels": None,
+            }
+        ]
         for d in candidates:
-            out.append({
-                "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                "sample_rate": d["default_samplerate"], "max_channels": d["max_input_channels"],
-            })
+            out.append(
+                {
+                    "id": d["index"],
+                    "name": d["name"],
+                    "backend": d["hostapi"],
+                    "sample_rate": d["default_samplerate"],
+                    "max_channels": d["max_input_channels"],
+                }
+            )
         return out
 
-    def serialize_input_device(self, device: Optional[Dict]) -> Dict:
-        if (not device) or (device.get("id") is None) or (device.get("name", "").strip().lower() == "none"):
+    def serialize_input_device(self, device: dict | None) -> dict:
+        if (
+            (not device)
+            or (device.get("id") is None)
+            or (device.get("name", "").strip().lower() == "none")
+        ):
             return {"id": None, "name": "None", "backend": ""}
-        return {"id": device.get("id"), "name": device.get("name", ""), "backend": device.get("backend", "")}
+        return {
+            "id": device.get("id"),
+            "name": device.get("name", ""),
+            "backend": device.get("backend", ""),
+        }
 
-    def set_input(self, selection: Optional[Dict]) -> None:
+    def set_input(self, selection: dict | None) -> None:
         was_running = self._running
 
         if selection is None or self._is_saved_disabled(selection):
@@ -158,7 +186,7 @@ class FlooAuxInput:
             self._running = False
             print("[FlooAuxInput] Loop stopped.")
 
-    def _start_loop_internal(self, *, name_hint: Optional[str]) -> None:
+    def _start_loop_internal(self, *, name_hint: str | None) -> None:
         if self._input_disabled:
             print("[FlooAuxInput] Not starting: input is 'None'.")
             return
@@ -167,9 +195,11 @@ class FlooAuxInput:
         latency = self.LATENCY
         chosen_block = self._blocksize
 
-        add_in = (self._pick_best_input_for_hint(name_hint)
-                  or self._resolve_input_by_selection_or_hint(self._input_sel, name_hint)
-                  or self._first_ok_input())
+        add_in = (
+            self._pick_best_input_for_hint(name_hint)
+            or self._resolve_input_by_selection_or_hint(self._input_sel, name_hint)
+            or self._first_ok_input()
+        )
         out_dev = self._pick_output(self.OUTPUT_HINTS)
         if add_in is None or out_dev is None:
             print("[FlooAuxInput] ERROR: No valid input or output device.")
@@ -180,11 +210,16 @@ class FlooAuxInput:
         self._cap_channels = 2 if int(in_dev_info.get("max_input_channels", 1)) >= 2 else 1
         self._pb_channels = 2 if int(out_dev_info.get("max_output_channels", 2)) >= 2 else 1
 
-        print(f"[FlooAuxInput] Using Input  : {add_in['name']} [{add_in['backend']}] ({self._cap_channels} ch)")
-        print(f"[FlooAuxInput] Using Output : {out_dev['name']} [{out_dev['backend']}] ({self._pb_channels} ch)")
+        print(
+            f"[FlooAuxInput] Using Input  : {add_in['name']} [{add_in['backend']}] ({self._cap_channels} ch)"
+        )
+        print(
+            f"[FlooAuxInput] Using Output : {out_dev['name']} [{out_dev['backend']}] ({self._pb_channels} ch)"
+        )
 
-        rate = self._pick_common_rate(add_in["id"], out_dev["id"], dtype,
-                                      self._cap_channels, self._pb_channels)
+        rate = self._pick_common_rate(
+            add_in["id"], out_dev["id"], dtype, self._cap_channels, self._pb_channels
+        )
         if rate is None:
             print("[FlooAuxInput] No common sample rate (48k or 44.1k). Not starting.")
             return
@@ -205,12 +240,22 @@ class FlooAuxInput:
                 outdata[:, 1] = indata[:, 0]
                 return
             if indata.shape[1] == 2 and outdata.shape[1] == 1:
-                outdata[:, 0] = ((indata[:, 0].astype(np.int32) + indata[:, 1].astype(np.int32)) // 2).astype(np.int16)
+                outdata[:, 0] = (
+                    (indata[:, 0].astype(np.int32) + indata[:, 1].astype(np.int32)) // 2
+                ).astype(np.int16)
 
-        sd.check_input_settings(device=add_in["id"], samplerate=self._rate,
-                                channels=self._cap_channels, dtype=self._dtype)
-        sd.check_output_settings(device=out_dev["id"], samplerate=self._rate,
-                                 channels=self._pb_channels, dtype=self._dtype)
+        sd.check_input_settings(
+            device=add_in["id"],
+            samplerate=self._rate,
+            channels=self._cap_channels,
+            dtype=self._dtype,
+        )
+        sd.check_output_settings(
+            device=out_dev["id"],
+            samplerate=self._rate,
+            channels=self._pb_channels,
+            dtype=self._dtype,
+        )
 
         self._stream = sd.Stream(
             device=(add_in["id"], out_dev["id"]),
@@ -223,31 +268,39 @@ class FlooAuxInput:
         )
         self._stream.start()
         self._running = True
-        print(f"[FlooAuxInput] Loop started @ {self._rate} Hz | block={chosen_block} | dtype={self._dtype} | latency={latency}")
+        print(
+            f"[FlooAuxInput] Loop started @ {self._rate} Hz | block={chosen_block} | dtype={self._dtype} | latency={latency}"
+        )
 
     # -------------- Selection & Utilities --------------
 
-    def _sd_list_devices(self) -> List[Dict]:
+    def _sd_list_devices(self) -> list[dict]:
         def norm(name: str) -> str:
             n = (name or "").lower()
-            if "alsa" in n: return "ALSA"
-            if "jack" in n: return "JACK"
-            if "pulse" in n: return "PulseAudio"
+            if "alsa" in n:
+                return "ALSA"
+            if "jack" in n:
+                return "JACK"
+            if "pulse" in n:
+                return "PulseAudio"
             return name or ""
+
         has = sd.query_hostapis()
         result = []
         for idx, d in enumerate(sd.query_devices()):
             backend_short = norm(has[d["hostapi"]]["name"])
-            result.append({
-                "index": idx,
-                "name": d["name"],
-                "hostapi": backend_short,
-                "max_input_channels": int(d.get("max_input_channels", 0)),
-                "max_output_channels": int(d.get("max_output_channels", 0)),
-                "default_samplerate": float(d.get("default_samplerate", 0.0)) or None,
-                "is_input": int(d.get("max_input_channels", 0)) > 0,
-                "is_output": int(d.get("max_output_channels", 0)) > 0,
-            })
+            result.append(
+                {
+                    "index": idx,
+                    "name": d["name"],
+                    "hostapi": backend_short,
+                    "max_input_channels": int(d.get("max_input_channels", 0)),
+                    "max_output_channels": int(d.get("max_output_channels", 0)),
+                    "default_samplerate": float(d.get("default_samplerate", 0.0)) or None,
+                    "is_input": int(d.get("max_input_channels", 0)) > 0,
+                    "is_output": int(d.get("max_output_channels", 0)) > 0,
+                }
+            )
         return result
 
     @staticmethod
@@ -255,10 +308,16 @@ class FlooAuxInput:
         return any(tok.lower() in (name or "").lower() for tok in FlooAuxInput.INPUT_BLOCKLIST)
 
     @staticmethod
-    def _is_saved_disabled(saved: Dict) -> bool:
-        return (not saved) or (saved.get("id") is None) or (saved.get("name", "").strip().lower() == "none")
+    def _is_saved_disabled(saved: dict) -> bool:
+        return (
+            (not saved)
+            or (saved.get("id") is None)
+            or (saved.get("name", "").strip().lower() == "none")
+        )
 
-    def _resolve_input_by_selection_or_hint(self, selection: Optional[Dict], hint: Optional[str]) -> Optional[Dict]:
+    def _resolve_input_by_selection_or_hint(
+        self, selection: dict | None, hint: str | None
+    ) -> dict | None:
         if selection and not self._is_saved_disabled(selection):
             current = self.list_additional_inputs()[1:]
             for d in current:
@@ -266,53 +325,77 @@ class FlooAuxInput:
                     return d
         if hint:
             for d in self._sd_list_devices():
-                if d["is_input"] and hint.lower() in d["name"].lower() and not self._is_blocklisted_input(d["name"]):
+                if (
+                    d["is_input"]
+                    and hint.lower() in d["name"].lower()
+                    and not self._is_blocklisted_input(d["name"])
+                ):
                     return {
-                        "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                        "max_channels": d["max_input_channels"], "default_samplerate": d["default_samplerate"],
+                        "id": d["index"],
+                        "name": d["name"],
+                        "backend": d["hostapi"],
+                        "max_channels": d["max_input_channels"],
+                        "default_samplerate": d["default_samplerate"],
                     }
         return None
 
-    def _first_ok_input(self) -> Optional[Dict]:
+    def _first_ok_input(self) -> dict | None:
         items = self.list_additional_inputs()
         return items[1] if len(items) > 1 else None
 
-    def _pick_output(self, hints: Sequence[str]) -> Optional[Dict]:
+    def _pick_output(self, hints: Sequence[str]) -> dict | None:
         hints_l = [h.lower() for h in hints]
         devs = self._sd_list_devices()
 
-        def match_exact(d): return any(d["name"].lower() == h for h in hints_l)
-        def match_sub(d):   return any(h in d["name"].lower() for h in hints_l)
+        def match_exact(d):
+            return any(d["name"].lower() == h for h in hints_l)
+
+        def match_sub(d):
+            return any(h in d["name"].lower() for h in hints_l)
 
         for b in self.PREFERRED_OUTPUT_BACKENDS:
             for d in devs:
                 if d["is_output"] and d["hostapi"] == b and match_exact(d):
                     return {
-                        "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                        "sample_rate": d["default_samplerate"], "max_channels": d["max_output_channels"],
+                        "id": d["index"],
+                        "name": d["name"],
+                        "backend": d["hostapi"],
+                        "sample_rate": d["default_samplerate"],
+                        "max_channels": d["max_output_channels"],
                     }
         for b in self.PREFERRED_OUTPUT_BACKENDS:
             for d in devs:
                 if d["is_output"] and d["hostapi"] == b and match_sub(d):
                     return {
-                        "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                        "sample_rate": d["default_samplerate"], "max_channels": d["max_output_channels"],
+                        "id": d["index"],
+                        "name": d["name"],
+                        "backend": d["hostapi"],
+                        "sample_rate": d["default_samplerate"],
+                        "max_channels": d["max_output_channels"],
                     }
         for d in devs:
             if d["is_output"] and match_exact(d):
                 return {
-                    "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                    "sample_rate": d["default_samplerate"], "max_channels": d["max_output_channels"],
+                    "id": d["index"],
+                    "name": d["name"],
+                    "backend": d["hostapi"],
+                    "sample_rate": d["default_samplerate"],
+                    "max_channels": d["max_output_channels"],
                 }
         for d in devs:
             if d["is_output"] and match_sub(d):
                 return {
-                    "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-                    "sample_rate": d["default_samplerate"], "max_channels": d["max_output_channels"],
+                    "id": d["index"],
+                    "name": d["name"],
+                    "backend": d["hostapi"],
+                    "sample_rate": d["default_samplerate"],
+                    "max_channels": d["max_output_channels"],
                 }
         return None
 
-    def _pick_common_rate(self, in_idx: int, out_idx: int, dtype: str, ch_in: int, ch_out: int) -> Optional[int]:
+    def _pick_common_rate(
+        self, in_idx: int, out_idx: int, dtype: str, ch_in: int, ch_out: int
+    ) -> int | None:
         # Prefer device defaults if they match; then 48k, then 44.1k
         candidates = []
         try:
@@ -329,11 +412,13 @@ class FlooAuxInput:
         for r in candidates:
             ok_in = ok_out = False
             try:
-                sd.check_input_settings(device=in_idx, samplerate=r, channels=ch_in, dtype=dtype); ok_in = True
+                sd.check_input_settings(device=in_idx, samplerate=r, channels=ch_in, dtype=dtype)
+                ok_in = True
             except Exception:
                 ok_in = False
             try:
-                sd.check_output_settings(device=out_idx, samplerate=r, channels=ch_out, dtype=dtype); ok_out = True
+                sd.check_output_settings(device=out_idx, samplerate=r, channels=ch_out, dtype=dtype)
+                ok_out = True
             except Exception:
                 ok_out = False
             print(f"[FlooAuxInput] Rate check {r} Hz: IN={ok_in} OUT={ok_out}")
@@ -341,20 +426,26 @@ class FlooAuxInput:
                 return r
         return None
 
-    def _pick_best_input_for_hint(self, name_hint: Optional[str]) -> Optional[Dict]:
+    def _pick_best_input_for_hint(self, name_hint: str | None) -> dict | None:
         if not name_hint:
             return None
         all_devs = self._sd_list_devices()
-        candidates = [d for d in all_devs
-                      if d["is_input"] and name_hint.lower() in d["name"].lower()
-                      and not self._is_blocklisted_input(d["name"])]
+        candidates = [
+            d
+            for d in all_devs
+            if d["is_input"]
+            and name_hint.lower() in d["name"].lower()
+            and not self._is_blocklisted_input(d["name"])
+        ]
         if not candidates:
             return None
         rank = {b: i for i, b in enumerate(self.PREFERRED_INPUT_BACKENDS)}
         candidates.sort(key=lambda d: (rank.get(d["hostapi"], 999), d["name"]))
         d = candidates[0]
         return {
-            "id": d["index"], "name": d["name"], "backend": d["hostapi"],
-            "max_channels": d["max_input_channels"], "default_samplerate": d["default_samplerate"],
+            "id": d["index"],
+            "name": d["name"],
+            "backend": d["hostapi"],
+            "max_channels": d["max_input_channels"],
+            "default_samplerate": d["default_samplerate"],
         }
-

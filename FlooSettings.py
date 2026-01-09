@@ -1,7 +1,10 @@
 from __future__ import annotations
-import json, os, tempfile
+
+import json
+import os
+import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 class FlooSettings:
@@ -17,7 +20,7 @@ class FlooSettings:
         self.app_name = app_name
         self.filename = filename
         self.path: Path = self._default_settings_path(app_name, filename)
-        self._data: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
         self.load()
 
     # ---------- Core I/O ----------
@@ -54,7 +57,7 @@ class FlooSettings:
     def set(self, key: str, value: Any) -> None:
         self._data[key] = value
 
-    def update(self, mapping: Dict[str, Any]) -> None:
+    def update(self, mapping: dict[str, Any]) -> None:
         self._data.update(mapping)
 
     def remove(self, key: str) -> None:

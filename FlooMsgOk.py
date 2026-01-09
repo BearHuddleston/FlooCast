@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgOk(FlooMessage):
     """OK message format: OK"""
 

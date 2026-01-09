@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgPl(FlooMessage):
     """
     BC:PL
@@ -8,7 +9,7 @@ class FlooMsgPl(FlooMessage):
 
     HEADER = "PL"
 
-    def __init__(self, isSend, index = None, addr = None, name = None, payload = None):
+    def __init__(self, isSend, index=None, addr=None, name=None, payload=None):
         self.index = index
         self.addr = addr
         self.name = name
@@ -22,4 +23,6 @@ class FlooMsgPl(FlooMessage):
         msgLen = len(payload)
         if msgLen < 20:
             return None
-        return cls(False, int(payload[3:5].decode('utf-8')), payload[6:18], payload[19:], payload[3:])
+        return cls(
+            False, int(payload[3:5].decode("utf-8")), payload[6:18], payload[19:], payload[3:]
+        )

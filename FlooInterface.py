@@ -1,9 +1,11 @@
 import time
+
 import serial
 import serial.tools.list_ports
-from FlooParser import FlooParser
-from FlooInterfaceDelegate import FlooInterfaceDelegate
+
 from FlooMessage import FlooMessage
+from FlooParser import FlooParser
+
 
 class FlooInterface:
     """FlooGoo Bluetooth USB Dongle Control Interface on USB COM port"""
@@ -35,16 +37,23 @@ class FlooInterface:
         if self.isSleep:
             return False
 
-        print([port.hwid for port in serial.tools.list_ports.grep('0A12:4007.*FMA120.*')])
-        ports = [port.name for port in serial.tools.list_ports.grep('0A12:4007.*FMA120.*')] # FMA120
+        print([port.hwid for port in serial.tools.list_ports.grep("0A12:4007.*FMA120.*")])
+        ports = [
+            port.name for port in serial.tools.list_ports.grep("0A12:4007.*FMA120.*")
+        ]  # FMA120
         if ports:
             if not self.port_opened:
                 self.port_name = ports[0]
                 print("monitor_port: try open " + self.port_name)
                 try:
-                    self.port = serial.Serial(port='/dev/' + self.port_name, baudrate=921600,
-                                              bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE,
-                                              exclusive=True)
+                    self.port = serial.Serial(
+                        port="/dev/" + self.port_name,
+                        baudrate=921600,
+                        bytesize=8,
+                        timeout=2,
+                        stopbits=serial.STOPBITS_ONE,
+                        exclusive=True,
+                    )
                     self.port_opened = self.port.is_open
                     if self.port_opened:
                         self.port_locked = False
@@ -52,7 +61,13 @@ class FlooInterface:
                     return self.port_opened
                 except Exception as e:
                     err_str = str(e).lower()
-                    if "lock" in err_str or "busy" in err_str or "unavailable" in err_str or "use" in err_str or "permission" in err_str:
+                    if (
+                        "lock" in err_str
+                        or "busy" in err_str
+                        or "unavailable" in err_str
+                        or "use" in err_str
+                        or "permission" in err_str
+                    ):
                         self.delegate.connectionError("port_busy")
                         self.port_locked = True
                     else:
@@ -74,7 +89,7 @@ class FlooInterface:
                 while self.port is not None and self.port.is_open and not self.isSleep:
                     try:
                         if self.port.inWaiting() > 0:
-                            newLine = self.port.read_until(b'\r\n')
+                            newLine = self.port.read_until(b"\r\n")
                             payload = newLine[:-2]
                             if len(payload) < 2:
                                 continue
@@ -95,10 +110,10 @@ class FlooInterface:
                 self.reset()
             time.sleep(5 if self.port_locked else 1)
 
-    def sendMsg(self, msg:FlooMessage):
+    def sendMsg(self, msg: FlooMessage):
         if self.port is not None and self.port.is_open and not self.isSleep:
             try:
                 print("FlooInterface: send " + msg.bytes.decode())
                 self.port.write(msg.bytes)
             except Exception as exec0:
-                print (exec0)
+                print(exec0)

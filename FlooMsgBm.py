@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgBm(FlooMessage):
     """
     BC:BM
@@ -24,11 +25,11 @@ class FlooMsgBm(FlooMessage):
 
     HEADER = "BM"
 
-    def __init__(self, isSend, mode = None):
+    def __init__(self, isSend, mode=None):
         self.mode = mode
         if mode != None:
             modStr = "%02X" % mode
-            super().__init__(isSend, FlooMsgBm.HEADER, bytes(modStr, 'ascii'))
+            super().__init__(isSend, FlooMsgBm.HEADER, bytes(modStr, "ascii"))
         else:
             super().__init__(isSend, FlooMsgBm.HEADER)
 
@@ -37,4 +38,4 @@ class FlooMsgBm(FlooMessage):
         msgLen = len(payload)
         if msgLen != 5:
             return None
-        return cls(False, int(payload[3:5].decode('ascii'), 16))
+        return cls(False, int(payload[3:5].decode("ascii"), 16))

@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgCt(FlooMessage):
     """
     BC:CT
@@ -9,9 +10,9 @@ class FlooMsgCt(FlooMessage):
 
     HEADER = "CT"
 
-    def __init__(self, index = None):
+    def __init__(self, index=None):
         if index is None:
             super().__init__(True, FlooMsgCt.HEADER)
         else:
             paramStr = "%02X" % index
-            super().__init__(True, FlooMsgCt.HEADER, bytes(paramStr, 'ascii'))
+            super().__init__(True, FlooMsgCt.HEADER, bytes(paramStr, "ascii"))

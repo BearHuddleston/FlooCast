@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgBe(FlooMessage):
     """
     BC:BE=<KEY> : key of length <=16
@@ -8,16 +9,16 @@ class FlooMsgBe(FlooMessage):
 
     HEADER = "BE"
 
-    def __init__(self, isSend, key = None):
+    def __init__(self, isSend, key=None):
         self.key = key
         if not isSend or key is None:
             super().__init__(isSend, FlooMsgBe.HEADER)
         else:
-            super().__init__(isSend, FlooMsgBe.HEADER, bytes(key, 'utf-8'))
+            super().__init__(isSend, FlooMsgBe.HEADER, bytes(key, "utf-8"))
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
         msgLen = len(payload)
         if msgLen != 5:
             return None
-        return cls(False, payload[3:].decode('utf-8'))
+        return cls(False, payload[3:].decode("utf-8"))

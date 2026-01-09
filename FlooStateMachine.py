@@ -1,30 +1,27 @@
 from threading import *
+
+import wx
+
 from FlooInterface import FlooInterface
 from FlooInterfaceDelegate import FlooInterfaceDelegate
 from FlooMessage import FlooMessage
-from FlooStateMachineDelegate import FlooStateMachineDelegate
-from FlooMsgAd import FlooMsgAd
+from FlooMsgAc import FlooMsgAc
 from FlooMsgAm import FlooMsgAm
-from FlooMsgLa import FlooMsgLa
-from FlooMsgSt import FlooMsgSt
+from FlooMsgBe import FlooMsgBe
 from FlooMsgBm import FlooMsgBm
 from FlooMsgBn import FlooMsgBn
-from FlooMsgBe import FlooMsgBe
-from FlooMsgOk import FlooMsgOk
+from FlooMsgCp import FlooMsgCp
 from FlooMsgEr import FlooMsgEr
 from FlooMsgFn import FlooMsgFn
-from FlooMsgCp import FlooMsgCp
-from FlooMsgIq import FlooMsgIq
-from FlooMsgCt import FlooMsgCt
-from FlooMsgDc import FlooMsgDc
-from FlooMsgAc import FlooMsgAc
-from FlooMsgLf import FlooMsgLf
-from FlooMsgVr import FlooMsgVr
-from FlooMsgMd import FlooMsgMd
-from FlooMsgTc import FlooMsgTc
-from FlooMsgFd import FlooMsgFd
 from FlooMsgFt import FlooMsgFt
-import wx
+from FlooMsgIq import FlooMsgIq
+from FlooMsgLa import FlooMsgLa
+from FlooMsgLf import FlooMsgLf
+from FlooMsgMd import FlooMsgMd
+from FlooMsgOk import FlooMsgOk
+from FlooMsgSt import FlooMsgSt
+from FlooMsgTc import FlooMsgTc
+from FlooMsgVr import FlooMsgVr
 
 
 class FlooStateMachine(FlooInterfaceDelegate, Thread):
@@ -86,7 +83,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                         self.a2dpSink = True
                     else:
                         self.a2dpSink = False
-                    wx.CallAfter(self.delegate.deviceDetected, True, self.inf.port_name, message.verStr)
+                    wx.CallAfter(
+                        self.delegate.deviceDetected, True, self.inf.port_name, message.verStr
+                    )
                     cmdGetAudioMode = FlooMsgAm(True)
                     self.inf.sendMsg(cmdGetAudioMode)
                     self.lastCmd = cmdGetAudioMode
@@ -145,17 +144,33 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 if isinstance(self.lastCmd, FlooMsgFt):
                     self.feature = message.feature
                     wx.CallAfter(self.delegate.ledEnabledInd, message.feature & 0x01)
-                    wx.CallAfter(self.delegate.aptxLosslessEnabledInd, 1 if (message.feature & 0x02) == 0x02 else 0)
-                    wx.CallAfter(self.delegate.gattClientEnabledInd, 1 if (self.feature & 0x04) == 0x04 else 0)
-                    wx.CallAfter(self.delegate.audioSourceInd, 1 if (self.feature & 0x08) == 0x08 else 0)
+                    wx.CallAfter(
+                        self.delegate.aptxLosslessEnabledInd,
+                        1 if (message.feature & 0x02) == 0x02 else 0,
+                    )
+                    wx.CallAfter(
+                        self.delegate.gattClientEnabledInd,
+                        1 if (self.feature & 0x04) == 0x04 else 0,
+                    )
+                    wx.CallAfter(
+                        self.delegate.audioSourceInd, 1 if (self.feature & 0x08) == 0x08 else 0
+                    )
                     cmdGetCodecInUse = FlooMsgAc(True)
                     self.inf.sendMsg(cmdGetCodecInUse)
                     self.lastCmd = cmdGetCodecInUse
-            elif isinstance(message, FlooMsgAc) or isinstance(message, FlooMsgEr):
+            elif isinstance(message, (FlooMsgAc, FlooMsgEr)):
                 if isinstance(self.lastCmd, FlooMsgAc) and isinstance(message, FlooMsgAc):
-                    wx.CallAfter(self.delegate.audioCodecInUseInd, message.codec, message.rssi, message.rate,
-                                 message.spkSampleRate, message.micSampleRate, message.sduInterval, message.transportDelay,
-                                 message.presentDelay)
+                    wx.CallAfter(
+                        self.delegate.audioCodecInUseInd,
+                        message.codec,
+                        message.rssi,
+                        message.rate,
+                        message.spkSampleRate,
+                        message.micSampleRate,
+                        message.sduInterval,
+                        message.transportDelay,
+                        message.presentDelay,
+                    )
                     self.lastCmd = None
                     self.state = FlooStateMachine.CONNECTED
                     self._attemptAutoReconnect()
@@ -196,8 +211,14 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     wx.CallAfter(self.delegate.broadcastNameInd, self.broadcastName)
                 elif isinstance(self.lastCmd, FlooMsgFt):
                     wx.CallAfter(self.delegate.ledEnabledInd, self.feature & 0x01)
-                    wx.CallAfter(self.delegate.aptxLosslessEnabledInd, 1 if (self.feature & 0x02) == 0x02 else 0)
-                    wx.CallAfter(self.delegate.gattClientEnabledInd, 1 if (self.feature & 0x04) == 0x04 else 0)
+                    wx.CallAfter(
+                        self.delegate.aptxLosslessEnabledInd,
+                        1 if (self.feature & 0x02) == 0x02 else 0,
+                    )
+                    wx.CallAfter(
+                        self.delegate.gattClientEnabledInd,
+                        1 if (self.feature & 0x04) == 0x04 else 0,
+                    )
                 self.lastCmd = None
                 self.pendingCmdPara = None
             elif isinstance(message, FlooMsgSt):
@@ -215,14 +236,26 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 else:
                     self.pairedDevices.append(message.name)
             elif isinstance(message, FlooMsgAc):
-                wx.CallAfter(self.delegate.audioCodecInUseInd, message.codec, message.rssi, message.rate,
-                             message.spkSampleRate, message.micSampleRate, message.sduInterval, message.transportDelay,
-                             message.presentDelay)
+                wx.CallAfter(
+                    self.delegate.audioCodecInUseInd,
+                    message.codec,
+                    message.rssi,
+                    message.rate,
+                    message.spkSampleRate,
+                    message.micSampleRate,
+                    message.sduInterval,
+                    message.transportDelay,
+                    message.presentDelay,
+                )
             elif isinstance(message, FlooMsgFt):
                 self.feature = message.feature
                 wx.CallAfter(self.delegate.ledEnabledInd, self.feature & 0x01)
-                wx.CallAfter(self.delegate.aptxLosslessEnabledInd, 1 if (self.feature & 0x02) == 0x02 else 0)
-                wx.CallAfter(self.delegate.gattClientEnabledInd, 1 if (self.feature & 0x04) == 0x04 else 0)
+                wx.CallAfter(
+                    self.delegate.aptxLosslessEnabledInd, 1 if (self.feature & 0x02) == 0x02 else 0
+                )
+                wx.CallAfter(
+                    self.delegate.gattClientEnabledInd, 1 if (self.feature & 0x04) == 0x04 else 0
+                )
 
     def setAudioMode(self, mode: int):
         if self.state == FlooStateMachine.CONNECTED:
@@ -325,7 +358,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         prevState = self._sourceStateBeforeDisconnect
         currState = self.sourceState
         if prevState is not None and prevState >= 4 and currState == 1:
-            print(f"[FlooStateMachine] Auto-reconnect: was state {prevState}, now {currState}, toggling device 0")
+            print(
+                f"[FlooStateMachine] Auto-reconnect: was state {prevState}, now {currState}, toggling device 0"
+            )
             self.toggleConnection(0)
         self._sourceStateBeforeDisconnect = None
 

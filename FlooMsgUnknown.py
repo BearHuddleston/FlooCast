@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgUnknown(FlooMessage):
     """Unknown message"""
 

@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgAd(FlooMessage):
     """
     BC:AD
@@ -8,7 +9,7 @@ class FlooMsgAd(FlooMessage):
 
     HEADER = "AD"
 
-    def __init__(self, isSend, addr = None, payload = None):
+    def __init__(self, isSend, addr=None, payload=None):
         self.addr = addr
         if isSend:
             super().__init__(isSend, FlooMsgAd.HEADER)

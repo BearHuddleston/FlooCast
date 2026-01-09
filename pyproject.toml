@@ -47,6 +47,17 @@ select = [
 ]
 ignore = [
     "E501",
+    "E701",
+    "E702",
+    "E711",
+    "UP031",
+    "SIM102",
+    "SIM105",
+    "SIM211",
+    "F821",
+    "F403",
+    "F405",
+    "F811",
 ]
 
 [tool.pytest.ini_options]

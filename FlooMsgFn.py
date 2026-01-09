@@ -1,5 +1,6 @@
 from FlooMessage import FlooMessage
 
+
 class FlooMsgFn(FlooMessage):
     """
     BC:FN
@@ -8,7 +9,7 @@ class FlooMsgFn(FlooMessage):
 
     HEADER = "FN"
 
-    def __init__(self, isSend, index = None, btAddress = None, name = None):
+    def __init__(self, isSend, index=None, btAddress=None, name=None):
         if isSend:
             self.index = None
             self.name = None
@@ -23,16 +24,21 @@ class FlooMsgFn(FlooMessage):
             else:
                 self.name = "No Name" if name is None else name
                 paramStr = "%02X,%s,%s" % (index, btAddress, self.name)
-            super().__init__(isSend, FlooMsgFn.HEADER, bytes(paramStr, 'utf-8'))
+            super().__init__(isSend, FlooMsgFn.HEADER, bytes(paramStr, "utf-8"))
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
         msgLen = len(payload)
         if msgLen == 5:
-            return cls(False, int(payload[3:5].decode('ascii')))
+            return cls(False, int(payload[3:5].decode("ascii")))
         elif msgLen == 18:
-            return cls(False, int(payload[3:5].decode('ascii')), payload[6:].decode('utf-8'))
+            return cls(False, int(payload[3:5].decode("ascii")), payload[6:].decode("utf-8"))
         elif msgLen > 19:
-            return cls(False, int(payload[3:5].decode('ascii')), payload[6:18].decode('utf-8'), payload[19:].decode('utf-8', errors="ignore"))
+            return cls(
+                False,
+                int(payload[3:5].decode("ascii")),
+                payload[6:18].decode("utf-8"),
+                payload[19:].decode("utf-8", errors="ignore"),
+            )
         else:
             return None

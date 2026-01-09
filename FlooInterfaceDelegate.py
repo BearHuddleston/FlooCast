@@ -1,7 +1,7 @@
 from FlooMessage import FlooMessage
 
-class FlooInterfaceDelegate:
 
+class FlooInterfaceDelegate:
     def interfaceState(self, enabled: bool, port: str):
         """The delegate shall handle the state of the interface."""
         pass
