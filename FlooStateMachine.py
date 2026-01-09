@@ -49,6 +49,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         self.sourceState = None
         self.a2dpSink = False
         self.feature = None
+        self._sourceStateBeforeDisconnect = None
 
     def reset(self):
         self.state = FlooStateMachine.INIT
@@ -67,6 +68,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self.lastCmd = cmdReadVersion
         elif not enabled:
             print("FlooStateMachine reset bypass")
+            self._sourceStateBeforeDisconnect = self.sourceState
             self.lastCmd = None
             self.pendingCmdPara = None
             self.state = FlooStateMachine.INIT
@@ -96,9 +98,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     self.inf.sendMsg(cmdGetSourceState)
                     self.lastCmd = cmdGetSourceState
             elif isinstance(message, FlooMsgSt):
+                self.sourceState = message.state
+                wx.CallAfter(self.delegate.sourceStateInd, message.state)
                 if isinstance(self.lastCmd, FlooMsgSt):
-                    self.sourceState = message.state
-                    wx.CallAfter(self.delegate.sourceStateInd, message.state)
                     cmdGetLeaState = FlooMsgLa(True)
                     self.inf.sendMsg(cmdGetLeaState)
                     self.lastCmd = cmdGetLeaState
@@ -156,6 +158,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                                  message.presentDelay)
                     self.lastCmd = None
                     self.state = FlooStateMachine.CONNECTED
+                    self._attemptAutoReconnect()
 
         elif self.state == FlooStateMachine.CONNECTED:
             if isinstance(message, FlooMsgOk):
@@ -317,6 +320,14 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             cmdClearIndexedDevice = FlooMsgCp(index)
             self.lastCmd = cmdClearIndexedDevice
             self.inf.sendMsg(cmdClearIndexedDevice)
+
+    def _attemptAutoReconnect(self):
+        prevState = self._sourceStateBeforeDisconnect
+        currState = self.sourceState
+        if prevState is not None and prevState >= 4 and currState == 1:
+            print(f"[FlooStateMachine] Auto-reconnect: was state {prevState}, now {currState}, toggling device 0")
+            self.toggleConnection(0)
+        self._sourceStateBeforeDisconnect = None
 
     def getRecentlyUsedDevices(self):
         if self.state == FlooStateMachine.CONNECTED:
