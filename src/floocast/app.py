@@ -7,39 +7,34 @@ import sys
 import urllib.request
 
 import certifi
-import pystray
 import wx
 import wx.lib.agw.hyperlink as hl
-from PIL import Image
 
 from floocast.audio.aux_input import FlooAuxInput
 from floocast.dfu_thread import FlooDfuThread
+from floocast.gui.constants import (
+    APP_GIF,
+    APP_ICON,
+    APP_LOGO_PNG,
+    APP_TITLE,
+    CODEC_STRINGS,
+    MAIN_WINDOW_HEIGHT,
+    MAIN_WINDOW_WIDTH,
+    get_lea_state_strings,
+    get_source_state_strings,
+)
+from floocast.gui.tray_icon import FlooCastTrayIcon
 from floocast.protocol.state_machine import FlooStateMachine
 from floocast.protocol.state_machine_delegate import FlooStateMachineDelegate
 from floocast.settings import FlooSettings
 
-appIcon = "FlooCastApp.ico"
-appGif = "FlooCastApp.gif"
-appTitle = "FlooCast"
-appLogoPng = "FlooCastHeader.png"
-
-codecStr = [
-    "None",
-    "CVSD",
-    "mSBC/WBS",
-    "SBC",
-    "aptX\u2122",
-    "aptX\u2122 HD",
-    "aptX\u2122 Adaptive",
-    "LC3",
-    "aptX\u2122 Adaptive",
-    "aptX\u2122 Lite",
-    "aptX\u2122 Lossless",
-    "aptX\u2122 Voice",
-]
-
-mainWindowWidth = 1200
-mainWindowHeight = 700
+appIcon = APP_ICON
+appGif = APP_GIF
+appTitle = APP_TITLE
+appLogoPng = APP_LOGO_PNG
+codecStr = CODEC_STRINGS
+mainWindowWidth = MAIN_WINDOW_WIDTH
+mainWindowHeight = MAIN_WINDOW_HEIGHT
 userLocale = wx.Locale.GetSystemLanguage()
 lan = wx.Locale.GetLanguageInfo(userLocale).CanonicalName
 
@@ -51,30 +46,8 @@ translate = gettext.translation("messages", localedir, languages=[lan], fallback
 translate.install()
 _ = translate.gettext
 
-sourceStateStr = [
-    _("Initializing"),
-    _("Idle"),
-    _("Pairing"),
-    _("Connecting"),
-    _("Connected"),
-    _("Audio starting"),
-    _("Audio streaming"),
-    _("Audio stopping"),
-    _("Disconnecting"),
-    _("Voice starting"),
-    _("Voice streaming"),
-    _("Voice stopping"),
-]
-
-leaStateStr = [
-    _("Disconnected"),
-    _("Connected"),
-    _("Unicast starting"),
-    _("Unicast streaming"),
-    _("Broadcast starting"),
-    _("Broadcast streaming"),
-    _("Streaming stopping"),
-]
+sourceStateStr = get_source_state_strings(_)
+leaStateStr = get_lea_state_strings(_)
 
 # create root window
 app = wx.App(False)
@@ -269,77 +242,6 @@ audioModeSbSizer.Add(audioModeLowerPanel, flag=wx.EXPAND)  # , proportion=1
 # Window panel
 
 
-class FlooCastTrayIcon:
-    def __init__(self, frame):
-        self.frame = frame
-        self.icon = None
-
-        icon_path = app_path + os.sep + appIcon
-        if os.path.exists(icon_path):
-            self.image = Image.open(icon_path)
-        else:
-            self.image = Image.new("RGB", (64, 64), color="blue")
-
-        self._create_icon()
-
-    def _create_icon(self):
-        menu = pystray.Menu(
-            pystray.MenuItem(_("Show Window"), self._on_show, default=True),
-            pystray.MenuItem(_("Minimize to System Tray"), self._on_minimize),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem(_("Quit"), self._on_quit),
-        )
-        self.icon = pystray.Icon("FlooCast", self.image, "FlooCast", menu)
-
-    def run(self):
-        self.icon.run_detached()
-
-    def _restore_window(self):
-        if not self.frame.IsShown():
-            self.frame.Show(True)
-        if self.frame.IsIconized():
-            self.frame.Iconize(False)
-        try:
-            self.frame.Restore()
-        except Exception:
-            pass
-        self.frame.Raise()
-        child = self.frame.FindFocus() or self.frame.FindWindowById(wx.ID_ANY)
-        (child or self.frame).SetFocus()
-        if not self.frame.IsActive():
-            try:
-                flag = getattr(wx, "USER_ATTENTION_INFO", 0)
-                self.frame.RequestUserAttention(flag)
-            except Exception:
-                try:
-                    self.frame.RequestUserAttention()
-                except Exception:
-                    pass
-
-    def _on_show(self, icon=None, item=None):
-        wx.CallAfter(self._restore_window)
-
-    def _on_minimize(self, icon=None, item=None):
-        def _hide():
-            if not self.frame.IsIconized():
-                self.frame.Iconize(True)
-            if self.frame.IsShown():
-                self.frame.Hide()
-
-        wx.CallAfter(_hide)
-
-    def _on_quit(self, icon=None, item=None):
-        def _close():
-            self.icon.stop()
-            self.frame.Close()
-
-        wx.CallAfter(_close)
-
-    def Destroy(self):
-        if self.icon:
-            self.icon.stop()
-
-
 def quit_all():
     appFrame.Close()
 
@@ -356,7 +258,7 @@ def hide_window(event):
         appFrame.Hide()
 
 
-windowIcon = FlooCastTrayIcon(appFrame)
+windowIcon = FlooCastTrayIcon(appFrame, app_path + os.sep + appIcon, _)
 windowIcon.run()
 appFrame.Bind(wx.EVT_CLOSE, quit_window)
 
