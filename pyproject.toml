@@ -1,5 +1,5 @@
 [project]
-name = "flocast"
+name = "floocast"
 version = "1.2.0"
 description = "Configure and control FlooGoo USB Bluetooth dongles (FMA120)"
 readme = "README.md"

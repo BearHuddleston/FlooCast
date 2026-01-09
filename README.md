@@ -70,7 +70,7 @@ The package will be created in the parent directory.
 ## Installing .deb Package
 
 ```bash
-sudo apt install ./flocast_*.deb
+sudo apt install ./floocast_*.deb
 ```
 
 Using `apt install` (not `dpkg -i`) ensures dependencies are automatically resolved.

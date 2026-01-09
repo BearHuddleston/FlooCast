@@ -1,4 +1,4 @@
-Source: flocast
+Source: floocast
 Section: sound
 Priority: optional
 Maintainer: FlooCast Maintainers <support@flairmesh.com>
@@ -6,7 +6,7 @@ Build-Depends: debhelper-compat (= 13), python3, python3-venv, python3-pip
 Standards-Version: 4.6.0
 Homepage: https://www.flairmesh.com/Dongle/FMA120.html
 
-Package: flocast
+Package: floocast
 Architecture: all
 Depends: ${misc:Depends}, python3 (>= 3.10), python3-wxgtk4.0, python3-numpy, python3-serial, python3-pil, python3-certifi, python3-urllib3, python3-pip, libsndfile1, gir1.2-appindicator3-0.1
 Description: Configure and control FlooGoo USB Bluetooth dongles
