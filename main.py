@@ -1080,7 +1080,7 @@ supportLink = hl.HyperLinkCtrl(
 )
 versionPanelSizer.Add(supportLink, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
 versionPanel.SetSizer(versionPanelSizer)
-versionInfo = wx.StaticText(versionPanel, wx.ID_ANY, label=_("Version") + " 1.1.6")
+versionInfo = wx.StaticText(versionPanel, wx.ID_ANY, label=_("Version") + " 1.2.0")
 versionPanelSizer.Add(versionInfo, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
 
 dfuUndergoing = False

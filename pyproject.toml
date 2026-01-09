@@ -1,6 +1,6 @@
 [project]
 name = "flocast"
-version = "1.1.6"
+version = "1.2.0"
 description = "Configure and control FlooGoo USB Bluetooth dongles (FMA120)"
 readme = "README.md"
 license = {text = "BSD-3-Clause"}

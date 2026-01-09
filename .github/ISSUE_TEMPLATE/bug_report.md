@@ -28,7 +28,7 @@ assignees: ''
 
 - OS: <!-- e.g., Ubuntu 24.04 -->
 - Python version: <!-- e.g., 3.12 -->
-- FlooCast version: <!-- e.g., 1.1.6 -->
+- FlooCast version: <!-- e.g., 1.2.0 -->
 
 ## Additional Context
 
