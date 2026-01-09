@@ -1,3 +1,5 @@
+"""Protocol message classes for FlooGoo communication."""
+
 __all__ = [
     "FlooMessage",
     "FlooMsgAc",
@@ -27,7 +29,9 @@ __all__ = [
 
 
 class FlooMessage:
-    """FlooGoo BAI message"""
+    """FlooGoo BAI message base class."""
+
+    HEADER: str = ""
 
     def __init__(self, isSend, header, payload=None):
         super().__init__()
@@ -35,28 +39,77 @@ class FlooMessage:
         self.header = header
         self.bytes = bytearray()
         if isSend:
-            self.bytes.extend(bytes("BC:", "ascii"))
-        self.bytes.extend(bytes(header, "ascii"))
+            self.bytes.extend(b"BC:")
+        self.bytes.extend(header.encode("ascii"))
         if payload is not None:
-            self.bytes.extend(bytes("=", "ascii"))
+            self.bytes.extend(b"=")
             self.bytes.extend(payload)
-        self.bytes.extend(bytes("\r\n", "ascii"))
+        self.bytes.extend(b"\r\n")
+
+
+class _HexValueMessage(FlooMessage):
+    """Base class for messages with a single hex-encoded value."""
+
+    VALUE_ATTR: str = "value"
+    STRICT_LENGTH: bool = True
+    ENCODING: str = "ascii"
+
+    def __init__(self, isSend, value=None):
+        setattr(self, self.VALUE_ATTR, value)
+        if value is not None:
+            super().__init__(isSend, self.HEADER, b"%02X" % value)
+        else:
+            super().__init__(isSend, self.HEADER)
+
+    @classmethod
+    def create_valid_msg(cls, payload: bytes):
+        msgLen = len(payload)
+        if cls.STRICT_LENGTH and msgLen != 5:
+            return None
+        if msgLen < 5:
+            return None
+        return cls(False, int(payload[3:5].decode(cls.ENCODING), 16))
+
+
+class _SendOnlyCommand(FlooMessage):
+    """Base class for send-only commands with no parameters."""
+
+    def __init__(self):
+        super().__init__(True, self.HEADER)
+
+
+class _IndexedCommand(FlooMessage):
+    """Base class for commands with optional index parameter."""
+
+    def __init__(self, index=None):
+        if index is None:
+            super().__init__(True, self.HEADER)
+        else:
+            super().__init__(True, self.HEADER, b"%02X" % index)
+
+
+class _StringPayloadMessage(FlooMessage):
+    """Base class for messages with string payload."""
+
+    VALUE_ATTR: str = "value"
+    MIN_LENGTH: int = 4
+
+    def __init__(self, isSend, value=None):
+        setattr(self, self.VALUE_ATTR, value)
+        if not isSend or value is None:
+            super().__init__(isSend, self.HEADER)
+        else:
+            super().__init__(isSend, self.HEADER, value.encode("utf-8"))
+
+    @classmethod
+    def create_valid_msg(cls, payload: bytes):
+        if len(payload) < cls.MIN_LENGTH:
+            return None
+        return cls(False, payload[3:].decode("utf-8"))
 
 
 class FlooMsgAc(FlooMessage):
-    """Audio Codec in Use
-    AC=xx
-    xx: 01 Voice CVSD
-        02 Voice mSBC
-        03 A2DP SBC
-        04 A2DP APTX
-        05 A2DP APTX HD
-        06 A2DP APTX Adaptive
-        07 LEA LC3
-        08 LEA APTX Adaptive
-        09 LEA APTX Lite
-        0A A2DP APTX Adaptive Lossless
-    """
+    """Audio Codec in Use - AC=xx with extended fields."""
 
     HEADER = "AC"
 
@@ -81,26 +134,13 @@ class FlooMsgAc(FlooMessage):
         self.transportDelay = transportDelay
         self.presentDelay = presentDelay
         if codec is not None:
-            adaptiveStr = (
-                "%02X" % codec
-                + ","
-                + "%02X" % rssi
-                + ","
-                + "%04X" % rate
-                + ","
-                + "%04X" % spkSampleRate
-                + ","
-                + "%04X" % micSampleRate
-                + ","
-                + "%04X" % sduInterval
-                + ","
-                + "%04X" % transportDelay
-                + ","
-                + "%04X" % self.presentDelay
+            payload = (
+                f"{codec:02X},{rssi:02X},{rate:04X},{spkSampleRate:04X},"
+                f"{micSampleRate:04X},{sduInterval:04X},{transportDelay:04X},{presentDelay:04X}"
             )
-            super().__init__(isSend, FlooMsgAc.HEADER, bytes(adaptiveStr, "ascii"))
+            super().__init__(isSend, self.HEADER, payload.encode("ascii"))
         else:
-            super().__init__(isSend, FlooMsgAc.HEADER)
+            super().__init__(isSend, self.HEADER)
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
@@ -143,235 +183,108 @@ class FlooMsgAc(FlooMessage):
                 int(payload[29:33].decode("ascii"), 16),
                 int(payload[34:38].decode("ascii"), 16),
             )
-
         else:
             return cls(False, int(payload[3:5].decode("ascii"), 16))
 
 
 class FlooMsgAd(FlooMessage):
-    """
-    BC:AD
-    AD=addr(U48)
-    """
+    """Address message - AD=addr(U48)."""
 
     HEADER = "AD"
 
     def __init__(self, isSend, addr=None, payload=None):
         self.addr = addr
         if isSend:
-            super().__init__(isSend, FlooMsgAd.HEADER)
+            super().__init__(isSend, self.HEADER)
         else:
-            super().__init__(isSend, FlooMsgAd.HEADER, payload)
+            super().__init__(isSend, self.HEADER, payload)
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 15:
+        if len(payload) != 15:
             return None
         return cls(False, payload[3:15], payload[3:])
 
 
-class FlooMsgAm(FlooMessage):
-    """
-    BC:AM
-    BC:AM=xx xx:
-             Bit 0~1:
-             00 high quality, 01 gaming, 02 broadcast
-    AM=xx
-             Bit 7:
-             0: hardware variant FMA120
-             1: hardware variant FMA121
-    """
+class FlooMsgAm(_HexValueMessage):
+    """Audio Mode - AM=xx (Bit 0~1: 00 high quality, 01 gaming, 02 broadcast)."""
 
     HEADER = "AM"
-
-    def __init__(self, isSend, mode=None):
-        self.mode = mode
-        if mode is not None:
-            modStr = "%02X" % mode
-            super().__init__(isSend, FlooMsgAm.HEADER, bytes(modStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgAm.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 5:
-            return None
-        return cls(False, int(payload[3:5].decode("utf-8"), 16))
+    VALUE_ATTR = "mode"
+    STRICT_LENGTH = False
+    ENCODING = "utf-8"
 
 
-class FlooMsgBe(FlooMessage):
-    """
-    BC:BE=<KEY> : key of length <=16
-    BN=00 or 01 : 00 key has not been set, 01 key set.
-    """
+class FlooMsgBe(_StringPayloadMessage):
+    """Broadcast Encryption Key - BE=<KEY>."""
 
     HEADER = "BE"
-
-    def __init__(self, isSend, key=None):
-        self.key = key
-        if not isSend or key is None:
-            super().__init__(isSend, FlooMsgBe.HEADER)
-        else:
-            super().__init__(isSend, FlooMsgBe.HEADER, bytes(key, "utf-8"))
+    VALUE_ATTR = "key"
+    MIN_LENGTH = 5
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 5:
+        if len(payload) != 5:
             return None
         return cls(False, payload[3:].decode("utf-8"))
 
 
-class FlooMsgBm(FlooMessage):
-    """
-    BC:BM
-    BC:BM=xx xx:Bit 0~1:
-                0 TMAP broadcast, no encrypt
-                1 TMAP broadcast, encrypted
-                2 PBP broadcast, no encrypt
-                3 PBP broadcast, encrypted
-                Bit 2:
-                0 Broadcast in standard quality
-                1 Broadcast in high quality
-                Bit 3:
-                0 Maintain broadcast for 3 minutes after USB audio playback ends
-                1 Stop broadcasting immediately when USB audio playback ends
-                Bit 4~5:
-                0 reserved
-                1 lowest latency
-                2 lower latency
-                3 default
-    BM=xx
-    """
+class FlooMsgBm(_HexValueMessage):
+    """Broadcast Mode - BM=xx (encryption, quality, latency bits)."""
 
     HEADER = "BM"
-
-    def __init__(self, isSend, mode=None):
-        self.mode = mode
-        if mode is not None:
-            modStr = "%02X" % mode
-            super().__init__(isSend, FlooMsgBm.HEADER, bytes(modStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgBm.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 5:
-            return None
-        return cls(False, int(payload[3:5].decode("ascii"), 16))
+    VALUE_ATTR = "mode"
 
 
-class FlooMsgBn(FlooMessage):
-    """
-    BC:BN
-    BN=<name>
-    """
+class FlooMsgBn(_StringPayloadMessage):
+    """Broadcast Name - BN=<name>."""
 
     HEADER = "BN"
-
-    def __init__(self, isSend, name=None):
-        self.name = name
-        if not isSend or name is None:
-            super().__init__(isSend, FlooMsgBn.HEADER)
-        else:
-            super().__init__(isSend, FlooMsgBn.HEADER, bytes(name, "utf-8"))
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 4:
-            return None
-        return cls(False, payload[3:].decode("utf-8"))
+    VALUE_ATTR = "name"
 
 
-class FlooMsgCp(FlooMessage):
-    """
-    BC:CP
-    BC:CP=xx xx:index of the device
-    The module replies OK or ER for CP command
-    """
+class FlooMsgCp(_IndexedCommand):
+    """Connect to Paired device - CP=xx."""
 
     HEADER = "CP"
 
-    def __init__(self, index=None):
-        if index is None:
-            super().__init__(True, FlooMsgCp.HEADER)
-        else:
-            paramStr = "%02X" % index
-            super().__init__(True, FlooMsgCp.HEADER, bytes(paramStr, "ascii"))
 
-
-class FlooMsgCt(FlooMessage):
-    """
-    BC:CT
-    BC:CP=xx xx:index of the device
-    The module replies OK or ER
-    """
+class FlooMsgCt(_IndexedCommand):
+    """Connect and Trust - CT=xx."""
 
     HEADER = "CT"
 
-    def __init__(self, index=None):
-        if index is None:
-            super().__init__(True, FlooMsgCt.HEADER)
-        else:
-            paramStr = "%02X" % index
-            super().__init__(True, FlooMsgCt.HEADER, bytes(paramStr, "ascii"))
 
-
-class FlooMsgDc(FlooMessage):
-    """
-    BC:DC
-    The module replies OK or ER for CP command
-    """
+class FlooMsgDc(_SendOnlyCommand):
+    """Disconnect - DC."""
 
     HEADER = "DC"
 
-    def __init__(self):
-        super().__init__(True, FlooMsgDc.HEADER)
-
 
 class FlooMsgEr(FlooMessage):
-    """Error message
-    ER=xx
-    xx: 01 Last command not allowed in current state
-        02 Format error in the last command
-    """
+    """Error message - ER=xx."""
 
     HEADER = "ER"
 
     def __init__(self, isSend, error):
         self.error = error
-        errStr = "%02d" % error
-        super().__init__(isSend, FlooMsgEr.HEADER, bytes(errStr, "ascii"))
+        super().__init__(isSend, self.HEADER, b"%02d" % error)
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 5:
+        if len(payload) != 5:
             return None
         return cls(False, int(payload[3:5].decode("ascii")))
 
 
-class FlooMsgFd(FlooMessage):
-    """
-    BC:FD
-    The module replies OK for CP command
-    """
+class FlooMsgFd(_SendOnlyCommand):
+    """Factory Default - FD."""
 
     HEADER = "FD"
 
-    def __init__(self):
-        super().__init__(True, FlooMsgFd.HEADER)
-
 
 class FlooMsgFn(FlooMessage):
-    """
-    BC:FN
-    FN=<index>,<name>
-    """
+    """Friendly Name - FN=<index>,<addr>,<name>."""
 
     HEADER = "FN"
 
@@ -380,7 +293,7 @@ class FlooMsgFn(FlooMessage):
             self.index = None
             self.name = None
             self.btAddress = None
-            super().__init__(isSend, FlooMsgFn.HEADER)
+            super().__init__(isSend, self.HEADER)
         else:
             self.index = index
             self.btAddress = btAddress
@@ -390,7 +303,7 @@ class FlooMsgFn(FlooMessage):
             else:
                 self.name = "No Name" if name is None else name
                 paramStr = "%02X,%s,%s" % (index, btAddress, self.name)
-            super().__init__(isSend, FlooMsgFn.HEADER, bytes(paramStr, "utf-8"))
+            super().__init__(isSend, self.HEADER, paramStr.encode("utf-8"))
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
@@ -406,149 +319,71 @@ class FlooMsgFn(FlooMessage):
                 payload[6:18].decode("utf-8"),
                 payload[19:].decode("utf-8", errors="ignore"),
             )
-        else:
-            return None
+        return None
 
 
-class FlooMsgFt(FlooMessage):
-    """
-    BC:FT
-    BC:FT=xx xx: feature bits, LSB: LED ON/OFF
-    FT=xx
-    """
+class FlooMsgFt(_HexValueMessage):
+    """Feature bits - FT=xx (LSB: LED ON/OFF)."""
 
     HEADER = "FT"
-
-    def __init__(self, isSend, feature=None):
-        self.feature = feature
-        if feature is not None:
-            featureStr = "%02X" % feature
-            super().__init__(isSend, FlooMsgFt.HEADER, bytes(featureStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgFt.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 5:
-            return None
-        return cls(False, int(payload[3:5].decode("ascii"), 16))
+    VALUE_ATTR = "feature"
+    STRICT_LENGTH = False
 
 
-class FlooMsgIq(FlooMessage):
-    """
-    BC:IQ
-    """
+class FlooMsgIq(_SendOnlyCommand):
+    """Inquiry - IQ."""
 
     HEADER = "IQ"
 
-    def __init__(self):
-        super().__init__(True, FlooMsgIq.HEADER)
 
-
-class FlooMsgLa(FlooMessage):
-    """
-    BC:LA
-    LA=xx
-    xx: 00 disconnected
-        01 connected
-        02 unicast streaming starting
-        03 unicast streaming
-        04 broadcast streaming starting,
-        05 broadcast streaming
-        06 streaming stopping
-    """
+class FlooMsgLa(_HexValueMessage):
+    """LE Audio state - LA=xx."""
 
     HEADER = "LA"
-
-    def __init__(self, isSend, state=None):
-        self.state = state
-        if state is not None:
-            stateStr = "%02X" % state
-            super().__init__(isSend, FlooMsgLa.HEADER, bytes(stateStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgLa.HEADER)
+    VALUE_ATTR = "state"
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 5:
+        if len(payload) != 5:
             return None
         return cls(False, int(payload[3:5].decode("ascii")))
 
 
-class FlooMsgLf(FlooMessage):
-    """
-    BC:LF
-    BC:LF=xx xx:00 prefer A2DP, 01 prefer LEA
-    LF=xx
-    """
+class FlooMsgLf(_HexValueMessage):
+    """LE Audio preference - LF=xx (00 prefer A2DP, 01 prefer LEA)."""
 
     HEADER = "LF"
-
-    def __init__(self, isSend, mode=None):
-        self.mode = mode
-        if mode is not None:
-            modStr = "%02X" % mode
-            super().__init__(isSend, FlooMsgLf.HEADER, bytes(modStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgLf.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 5:
-            return None
-        return cls(False, int(payload[3:5].decode("utf-8")))
+    VALUE_ATTR = "mode"
+    STRICT_LENGTH = False
+    ENCODING = "utf-8"
 
 
-class FlooMsgMd(FlooMessage):
-    """
-    BC:MD
-    BC:MD=xx xx:00 discoverable off, 01 discoverable on
-    MD=xx
-    """
+class FlooMsgMd(_HexValueMessage):
+    """Discoverable Mode - MD=xx."""
 
     HEADER = "MD"
-
-    def __init__(self, isSend, mode=None):
-        self.mode = mode
-        if mode is not None:
-            modStr = "%02X" % mode
-            super().__init__(isSend, FlooMsgMd.HEADER, bytes(modStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgMd.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 5:
-            return None
-        return cls(False, int(payload[3:5].decode("utf-8")))
+    VALUE_ATTR = "mode"
+    STRICT_LENGTH = False
+    ENCODING = "utf-8"
 
 
 class FlooMsgOk(FlooMessage):
-    """OK message format: OK"""
+    """OK response message."""
 
     HEADER = "OK"
 
     def __init__(self, isSend):
-        super().__init__(isSend, FlooMsgOk.HEADER)
+        super().__init__(isSend, self.HEADER)
 
     @classmethod
     def create_valid_msg(cls, pkt: bytes):
-        msgLen = len(pkt)
-        if msgLen != 2:
-            print("OK msg create failed")
+        if len(pkt) != 2:
             return None
         return cls(False)
 
 
 class FlooMsgPl(FlooMessage):
-    """
-    BC:PL
-    PL=index(U8),addr(U48),name(str)
-    """
+    """Paired device List - PL=index(U8),addr(U48),name(str)."""
 
     HEADER = "PL"
 
@@ -557,104 +392,62 @@ class FlooMsgPl(FlooMessage):
         self.addr = addr
         self.name = name
         if isSend:
-            super().__init__(isSend, FlooMsgPl.HEADER)
+            super().__init__(isSend, self.HEADER)
         else:
-            super().__init__(isSend, FlooMsgPl.HEADER, payload)
+            super().__init__(isSend, self.HEADER, payload)
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 20:
+        if len(payload) < 20:
             return None
         return cls(
             False, int(payload[3:5].decode("utf-8")), payload[6:18], payload[19:], payload[3:]
         )
 
 
-class FlooMsgSt(FlooMessage):
-    """
-    BC:ST
-    ST=xx
-    xx: 00 Init
-        01 Idle
-        02 Pairing
-        03 Connecting
-        04 Connected
-        05 Audio starting
-        06 Audio streaming
-        07 Audio stopping
-        08 Disconnecting
-        09 Voice staring
-        0A Voice streaming
-        0B Voice stopping
-    """
+class FlooMsgSt(_HexValueMessage):
+    """Source State - ST=xx."""
 
     HEADER = "ST"
-
-    def __init__(self, isSend, state=None):
-        self.state = state
-        if state is not None:
-            stateStr = "%02X" % state
-            super().__init__(isSend, FlooMsgSt.HEADER, bytes(stateStr, "ascii"))
-        else:
-            super().__init__(isSend, FlooMsgSt.HEADER)
-
-    @classmethod
-    def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen != 5:
-            return None
-        return cls(False, int(payload[3:5].decode("ascii"), 16))
+    VALUE_ATTR = "state"
 
 
-class FlooMsgTc(FlooMessage):
-    """
-    BC:TC
-    BC:TC=xx xx:index of the device
-    The module replies OK or ER for TC command
-    """
+class FlooMsgTc(_IndexedCommand):
+    """Terminate Connection - TC=xx."""
 
     HEADER = "TC"
 
-    def __init__(self, index=None):
-        if index is None:
-            super().__init__(True, FlooMsgTc.HEADER)
-        else:
-            paramStr = "%02X" % index
-            super().__init__(True, FlooMsgTc.HEADER, bytes(paramStr, "ascii"))
-
 
 class FlooMsgUnknown(FlooMessage):
-    """Unknown message"""
+    """Unknown message type."""
 
     HEADER = "~~"
 
     def __init__(self, isSend):
-        super().__init__(isSend, FlooMsgUnknown.HEADER)
+        super().__init__(isSend, self.HEADER)
 
     @classmethod
     def create_valid_msg(cls, pkt: bytes = None):
         return cls(False)
 
 
-class FlooMsgVr(FlooMessage):
-    """
-    BC:VR
-    VR=version string, such as 1.0.0.0
-    """
+class FlooMsgVr(_StringPayloadMessage):
+    """Version - VR=<version string>."""
 
     HEADER = "VR"
+    VALUE_ATTR = "verStr"
 
     def __init__(self, isSend, version=None):
         self.verStr = version
         if isSend:
-            super().__init__(isSend, FlooMsgVr.HEADER)
+            FlooMessage.__init__(self, isSend, self.HEADER)
         else:
-            super().__init__(isSend, FlooMsgVr.HEADER, bytes(version, "utf-8"))
+            FlooMessage.__init__(
+                self, isSend, self.HEADER, version.encode("utf-8") if version else None
+            )
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        msgLen = len(payload)
-        if msgLen < 4:
+        if len(payload) < 4:
             return None
         return cls(False, payload[3:].decode("utf-8"))
