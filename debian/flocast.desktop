@@ -2,7 +2,7 @@
 Name=FlooCast
 Comment=Configure and control FlooGoo USB Bluetooth dongles
 Exec=python3 /opt/flocast/main.py
-Icon=/opt/flocast/FlooCastApp.png
+Icon=flocast
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;
