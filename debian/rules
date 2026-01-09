@@ -5,8 +5,12 @@
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/floocast/opt/floocast
-	cp -r *.py *.png *.gif *.ico locales $(CURDIR)/debian/floocast/opt/floocast/
+	cp -r src/floocast $(CURDIR)/debian/floocast/opt/floocast/
+	cp -r *.png *.gif *.ico locales $(CURDIR)/debian/floocast/opt/floocast/
 	install -d $(CURDIR)/debian/floocast/usr/share/applications
 	install -m 644 debian/floocast.desktop $(CURDIR)/debian/floocast/usr/share/applications/
 	install -d $(CURDIR)/debian/floocast/usr/share/icons/hicolor/256x256/apps
 	install -m 644 FlooCastApp.png $(CURDIR)/debian/floocast/usr/share/icons/hicolor/256x256/apps/floocast.png
+	install -d $(CURDIR)/debian/floocast/usr/bin
+	printf '#!/bin/sh\ncd /opt/floocast\nPYTHONPATH=/opt/floocast exec python3 -m floocast "$$@"\n' > $(CURDIR)/debian/floocast/usr/bin/floocast
+	chmod +x $(CURDIR)/debian/floocast/usr/bin/floocast

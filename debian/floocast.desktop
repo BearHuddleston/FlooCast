@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=FlooCast
 Comment=Configure and control FlooGoo USB Bluetooth dongles
-Exec=python3 /opt/floocast/main.py
+Exec=/usr/bin/floocast
 Icon=floocast
 Terminal=false
 Type=Application
