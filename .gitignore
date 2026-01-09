@@ -8,3 +8,12 @@
 *.msix
 *.spec
 
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/flocast.substvars
+debian/flocast/
+*.deb
+*.buildinfo
+*.changes
+

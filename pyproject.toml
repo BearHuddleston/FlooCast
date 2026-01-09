@@ -23,6 +23,37 @@ Homepage = "https://www.flairmesh.com/Dongle/FMA120.html"
 packages = ["."]
 only-include = ["*.py"]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+    "pytest>=8.0",
+    "pre-commit>=4.0",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "C4",
+    "SIM",
+]
+ignore = [
+    "E501",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
