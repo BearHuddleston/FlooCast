@@ -19,9 +19,14 @@ dependencies = [
 [project.urls]
 Homepage = "https://www.flairmesh.com/Dongle/FMA120.html"
 
+[project.scripts]
+floocast = "floocast.__main__:main"
+
 [tool.hatch.build.targets.wheel]
-packages = ["."]
-only-include = ["*.py"]
+packages = ["src/floocast"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/floocast"]
 
 [project.optional-dependencies]
 dev = [
