@@ -22,6 +22,7 @@ from FlooMsgOk import FlooMsgOk
 from FlooMsgSt import FlooMsgSt
 from FlooMsgTc import FlooMsgTc
 from FlooMsgVr import FlooMsgVr
+from FlooSettings import FlooSettings
 
 
 class FlooStateMachine(FlooInterfaceDelegate, Thread):
@@ -47,6 +48,15 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         self.a2dpSink = False
         self.feature = None
         self._sourceStateBeforeDisconnect = None
+        self._reconnectAttempts = 0
+        self._reconnectTimer = None
+        self._settings = FlooSettings()
+        self._lastSavedState = None
+        saved_state = self._settings.get_item("last_streaming_state")
+        if saved_state is not None and saved_state >= 4:
+            print(f"[FlooStateMachine] Restored last streaming state: {saved_state}")
+            self._sourceStateBeforeDisconnect = saved_state
+            self._clearSavedState()
 
     def reset(self):
         self.state = FlooStateMachine.INIT
@@ -64,7 +74,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self.inf.sendMsg(cmdReadVersion)
             self.lastCmd = cmdReadVersion
         elif not enabled:
-            print("FlooStateMachine reset bypass")
+            print(f"[FlooStateMachine] Device disconnected, saving sourceState={self.sourceState}")
             self._sourceStateBeforeDisconnect = self.sourceState
             self.lastCmd = None
             self.pendingCmdPara = None
@@ -97,6 +107,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     self.inf.sendMsg(cmdGetSourceState)
                     self.lastCmd = cmdGetSourceState
             elif isinstance(message, FlooMsgSt):
+                print(f"[FlooStateMachine] ST message: state={message.state}")
                 self.sourceState = message.state
                 wx.CallAfter(self.delegate.sourceStateInd, message.state)
                 if isinstance(self.lastCmd, FlooMsgSt):
@@ -222,8 +233,13 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 self.lastCmd = None
                 self.pendingCmdPara = None
             elif isinstance(message, FlooMsgSt):
+                print(f"[FlooStateMachine] ST message (CONNECTED): state={message.state}")
                 self.sourceState = message.state
                 wx.CallAfter(self.delegate.sourceStateInd, message.state)
+                if message.state >= 4 and message.state != self._lastSavedState:
+                    self._lastSavedState = message.state
+                    self._settings.set_item("last_streaming_state", message.state)
+                    self._settings.save()
                 if message.state == 4 or message.state == 6:
                     self.getRecentlyUsedDevices()
             elif isinstance(message, FlooMsgLa):
@@ -357,12 +373,72 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
     def _attemptAutoReconnect(self):
         prevState = self._sourceStateBeforeDisconnect
         currState = self.sourceState
+        print(
+            f"[FlooStateMachine] _attemptAutoReconnect: prevState={prevState}, currState={currState}"
+        )
         if prevState is not None and prevState >= 4 and currState == 1:
-            print(
-                f"[FlooStateMachine] Auto-reconnect: was state {prevState}, now {currState}, toggling device 0"
-            )
-            self.toggleConnection(0)
+            self._reconnectAttempts = 0
+            self._scheduleReconnect()
+        else:
+            print("[FlooStateMachine] Auto-reconnect skipped: conditions not met")
         self._sourceStateBeforeDisconnect = None
+
+    def _clearSavedState(self):
+        self._lastSavedState = None
+        self._settings.set_item("last_streaming_state", None)
+        self._settings.save()
+
+    def _cancelReconnectTimer(self):
+        if self._reconnectTimer is not None:
+            try:
+                self._reconnectTimer.Stop()
+            except Exception:
+                pass
+            self._reconnectTimer = None
+
+    def _scheduleReconnect(self):
+        MAX_RETRIES = 8
+        RETRY_DELAYS = [2000, 3000, 4000, 5000, 6000, 8000, 10000, 15000]
+        if self._reconnectAttempts >= MAX_RETRIES:
+            print(f"[FlooStateMachine] Auto-reconnect: gave up after {MAX_RETRIES} attempts")
+            self._clearSavedState()
+            return
+        if self.sourceState >= 4:
+            print(
+                f"[FlooStateMachine] Auto-reconnect: already connected (state={self.sourceState})"
+            )
+            return
+        self._cancelReconnectTimer()
+        delay = RETRY_DELAYS[min(self._reconnectAttempts, len(RETRY_DELAYS) - 1)]
+        print(
+            f"[FlooStateMachine] Auto-reconnect: scheduling attempt {self._reconnectAttempts + 1} in {delay}ms"
+        )
+        wx.CallAfter(
+            lambda: setattr(self, "_reconnectTimer", wx.CallLater(delay, self._doReconnect))
+        )
+
+    def _doReconnect(self):
+        self._reconnectAttempts += 1
+        if self.sourceState >= 4:
+            print("[FlooStateMachine] Auto-reconnect: already connected, cancelling")
+            return
+        if self.sourceState != 1:
+            print(f"[FlooStateMachine] Auto-reconnect: state={self.sourceState}, retrying later")
+            self._scheduleReconnect()
+            return
+        print(
+            f"[FlooStateMachine] Auto-reconnect: attempt {self._reconnectAttempts}, toggling device 0"
+        )
+        self.toggleConnection(0)
+        wx.CallAfter(lambda: wx.CallLater(3000, self._checkReconnectResult))
+
+    def _checkReconnectResult(self):
+        if self.sourceState >= 4:
+            print(f"[FlooStateMachine] Auto-reconnect: success! state={self.sourceState}")
+            self._reconnectAttempts = 0
+        elif self.sourceState == 1:
+            print("[FlooStateMachine] Auto-reconnect: still idle, scheduling retry")
+            self._scheduleReconnect()
 
     def getRecentlyUsedDevices(self):
         if self.state == FlooStateMachine.CONNECTED:

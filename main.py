@@ -858,9 +858,11 @@ class PopMenu(wx.Menu):
 
 def OnContextMenu(Event):
     listBox = Event.GetEventObject()
-    listBox.PopupMenu(
-        PopMenu(listBox), listBox.ScreenToClient(Event.GetPosition())
-    )  # wx.GetMousePosition()
+    pos = listBox.ScreenToClient(Event.GetPosition())
+    item = listBox.HitTest(pos)
+    if item != wx.NOT_FOUND:
+        listBox.SetSelection(item)
+    listBox.PopupMenu(PopMenu(listBox), pos)
 
 
 pairedDeviceListbox = wx.ListBox(pairedDevicesSb, style=wx.LB_SINGLE | wx.LB_ALWAYS_SB)
