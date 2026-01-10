@@ -84,6 +84,3 @@ class AudioModePanel:
 
         self.sizer.Add(self.upper_panel, flag=wx.EXPAND)
         self.sizer.Add(self.lower_panel, flag=wx.EXPAND)
-
-        self.on_bitmap = on_bitmap
-        self.off_bitmap = off_bitmap

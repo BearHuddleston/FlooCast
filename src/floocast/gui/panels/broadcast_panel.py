@@ -183,6 +183,3 @@ class BroadcastPanel:
         self.sizer.Add(self.entry_panel, flag=wx.EXPAND | wx.TOP, border=4)
         self.sizer.Add(self.latency_panel, flag=wx.EXPAND | wx.TOP, border=4)
         self.sizer.Add(self.aux_input_panel, flag=wx.EXPAND | wx.TOP, border=4)
-
-        self.on_bitmap = on_bitmap
-        self.off_bitmap = off_bitmap
