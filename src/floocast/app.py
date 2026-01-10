@@ -8,7 +8,6 @@ import urllib.request
 
 import certifi
 import wx
-import wx.lib.agw.hyperlink as hl
 
 from floocast.audio.aux_input import FlooAuxInput
 from floocast.dfu_thread import FlooDfuThread
@@ -22,6 +21,14 @@ from floocast.gui.constants import (
     MAIN_WINDOW_WIDTH,
     get_lea_state_strings,
     get_source_state_strings,
+)
+from floocast.gui.panels import (
+    AudioModePanel,
+    BroadcastPanel,
+    PairedDevicesPanel,
+    SettingsPanel,
+    VersionPanel,
+    WindowPanel,
 )
 from floocast.gui.tray_icon import FlooCastTrayIcon
 from floocast.protocol.state_machine import FlooStateMachine
@@ -81,16 +88,27 @@ hwWithAnalogInput = 0
 
 # Audio mode panel
 audioMode = None
-audioModeSb = wx.StaticBox(appPanel, wx.ID_ANY, _("Audio Mode"))
-audioModeSbSizer = wx.StaticBoxSizer(audioModeSb, wx.VERTICAL)
-
-audioModeUpperPanel = wx.Panel(audioModeSb)
-audioModeUpperPanelSizer = wx.FlexGridSizer(2, 3, (0, 0))
-audioModeHighQualityRadioButton = wx.RadioButton(
-    audioModeUpperPanel, label=_("High Quality (one-to-one)"), style=wx.RB_GROUP
-)
-audioModeGamingRadioButton = wx.RadioButton(audioModeUpperPanel, label=_("Gaming (one-to-one)"))
-audioModeBroadcastRadioButton = wx.RadioButton(audioModeUpperPanel, label=_("Broadcast"))
+audioModePanel = AudioModePanel(appPanel, _, on, off, codecStr)
+audioModeSb = audioModePanel.static_box
+audioModeSbSizer = audioModePanel.sizer
+audioModeUpperPanel = audioModePanel.upper_panel
+audioModeUpperPanelSizer = audioModePanel.upper_sizer
+audioModeHighQualityRadioButton = audioModePanel.high_quality_radio
+audioModeGamingRadioButton = audioModePanel.gaming_radio
+audioModeBroadcastRadioButton = audioModePanel.broadcast_radio
+dongleStateSb = audioModePanel.dongle_state_box
+dongleStateSbSizer = audioModePanel.dongle_state_sizer
+dongleStateText = audioModePanel.dongle_state_text
+leaStateSb = audioModePanel.lea_state_box
+leaStateSbSizer = audioModePanel.lea_state_sizer
+leaStateText = audioModePanel.lea_state_text
+codecInUseSb = audioModePanel.codec_in_use_box
+codecInUseSbSizer = audioModePanel.codec_in_use_sizer
+codecInUseText = audioModePanel.codec_in_use_text
+audioModeLowerPanel = audioModePanel.lower_panel
+audioModeLowerPanelSizer = audioModePanel.lower_sizer
+preferLeaCheckBox = audioModePanel.prefer_lea_checkbox
+preferLeButton = audioModePanel.prefer_lea_button
 
 
 def aux_input_broadcast_enable(enable):
@@ -147,41 +165,6 @@ def audio_mode_sel(event):
 
 audioModeUpperPanel.Bind(wx.EVT_RADIOBUTTON, audio_mode_sel)
 
-dongleStateSb = wx.StaticBox(audioModeUpperPanel, wx.ID_ANY, _("Dongle State"))
-dongleStateSbSizer = wx.StaticBoxSizer(dongleStateSb, wx.VERTICAL)
-dongleStateText = wx.StaticText(dongleStateSb, wx.ID_ANY, _("Initializing"))
-dongleStateSbSizer.Add(
-    dongleStateText, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, border=4
-)
-
-leaStateSb = wx.StaticBox(audioModeUpperPanel, wx.ID_ANY, _("LE Audio State"))
-leaStateSbSizer = wx.StaticBoxSizer(leaStateSb, wx.VERTICAL)
-leaStateText = wx.StaticText(leaStateSb, wx.ID_ANY, _("Disconnected"))
-leaStateSbSizer.Add(leaStateText, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, border=4)
-
-codecInUseSb = wx.StaticBox(audioModeUpperPanel, wx.ID_ANY, _("Codec in Use"))
-codecInUseSbSizer = wx.StaticBoxSizer(codecInUseSb, wx.VERTICAL)
-codecInUseText = wx.StaticText(codecInUseSb, wx.ID_ANY, codecStr[0])
-codecInUseSbSizer.Add(
-    codecInUseText, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, border=4
-)
-
-audioModeUpperPanelSizer.Add(audioModeHighQualityRadioButton, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.Add(audioModeGamingRadioButton, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.Add(audioModeBroadcastRadioButton, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.Add(dongleStateSbSizer, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.Add(leaStateSbSizer, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.Add(codecInUseSbSizer, flag=wx.EXPAND | wx.ALL, border=4)
-audioModeUpperPanelSizer.AddGrowableRow(0, 1)
-audioModeUpperPanelSizer.AddGrowableRow(1, 1)
-audioModeUpperPanelSizer.AddGrowableCol(0, 1)
-audioModeUpperPanelSizer.AddGrowableCol(1, 1)
-audioModeUpperPanelSizer.AddGrowableCol(2, 2)
-audioModeUpperPanel.SetSizer(audioModeUpperPanelSizer)
-
-audioModeLowerPanel = wx.Panel(audioModeSb)
-audioModeLowerPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
-
 preferLeaEnable = None
 
 
@@ -214,29 +197,8 @@ def prefer_lea_enable_switch(event):
     prefer_lea_enable_switch_set(not preferLeaEnable, False)
 
 
-preferLeaCheckBox = wx.CheckBox(
-    audioModeLowerPanel,
-    wx.ID_ANY,
-    label=_("Prefer using LE audio for dual-mode devices")
-    + " ("
-    + _("Must be disabled for")
-    + " "
-    + "aptX\u2122 Lossless"
-    + ")",
-)
-preferLeButton = wx.Button(audioModeLowerPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE)
-preferLeButton.SetToolTip(
-    _("Toggle switch for") + " " + _("Prefer using LE audio for dual-mode devices") + " " + _("Off")
-)
-preferLeButton.SetBitmap(off)
 audioModeLowerPanel.Bind(wx.EVT_CHECKBOX, prefer_lea_enable_switch, preferLeaCheckBox)
 preferLeButton.Bind(wx.EVT_BUTTON, prefer_lea_enable_button)
-audioModeLowerPanelSizer.Add(preferLeaCheckBox, flag=wx.EXPAND, proportion=1)
-audioModeLowerPanelSizer.Add(preferLeButton, proportion=0)
-audioModeLowerPanel.SetSizer(audioModeLowerPanelSizer)
-
-audioModeSbSizer.Add(audioModeUpperPanel, flag=wx.EXPAND)  # , proportion=5
-audioModeSbSizer.Add(audioModeLowerPanel, flag=wx.EXPAND)  # , proportion=1
 
 
 # Window panel
@@ -262,11 +224,16 @@ windowIcon = FlooCastTrayIcon(appFrame, app_path + os.sep + appIcon, _)
 windowIcon.run()
 appFrame.Bind(wx.EVT_CLOSE, quit_window)
 
-windowSb = wx.StaticBox(appPanel, wx.ID_ANY, _("Window"))
-windowSbSizer = wx.StaticBoxSizer(windowSb, wx.VERTICAL)
-minimizeButton = wx.Button(windowSb, label=_("Minimize to System Tray"))
+windowPanel = WindowPanel(appPanel, _, on, off, startMinimized)
+windowSb = windowPanel.static_box
+windowSbSizer = windowPanel.sizer
+minimizeButton = windowPanel.minimize_button
+quitButton = windowPanel.quit_button
+startMinimizedPanel = windowPanel.start_minimized_panel
+startMinimizedPanelSizer = windowPanel.start_minimized_sizer
+startMinimizedCheckBox = windowPanel.start_minimized_checkbox
+startMinimizedButton = windowPanel.start_minimized_button
 minimizeButton.Bind(wx.EVT_BUTTON, hide_window)
-quitButton = wx.Button(windowSb, label=_("Quit App"))
 quitButton.Bind(wx.EVT_BUTTON, quit_window)
 
 
@@ -294,44 +261,52 @@ def start_minimized_enable_switch(event):
     start_minimized_enable_switch_set(not startMinimized)
 
 
-startMinimizedPanel = wx.Panel(windowSb)
-startMinimizedPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
-startMinimizedCheckBox = wx.CheckBox(startMinimizedPanel, wx.ID_ANY, label=_("Start Minimized"))
-startMinimizedCheckBox.SetValue(startMinimized)
-startMinimizedButton = wx.Button(startMinimizedPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE)
-if startMinimized:
-    startMinimizedButton.SetToolTip(
-        _("Toggle switch for") + " " + _("Start Minimized") + " " + _("On")
-    )
-    startMinimizedButton.SetBitmap(on)
-else:
-    startMinimizedButton.SetToolTip(
-        _("Toggle switch for") + " " + _("Start Minimized") + " " + _("Off")
-    )
-    startMinimizedButton.SetBitmap(off)
 windowSb.Bind(wx.EVT_CHECKBOX, start_minimized_enable_switch, startMinimizedCheckBox)
 startMinimizedButton.Bind(wx.EVT_BUTTON, start_minimized_enable_button)
-startMinimizedPanelSizer.Add(startMinimizedCheckBox, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 0)
-startMinimizedPanelSizer.AddStretchSpacer(1)
-startMinimizedPanelSizer.Add(startMinimizedButton, 0, wx.ALIGN_CENTER_VERTICAL)
-startMinimizedPanel.SetSizer(startMinimizedPanelSizer)
-
-windowSbSizer.AddStretchSpacer()
-windowSbSizer.Add(minimizeButton, proportion=2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
-windowSbSizer.AddStretchSpacer()
-windowSbSizer.Add(quitButton, proportion=2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
-windowSbSizer.AddStretchSpacer()
-windowSbSizer.Add(startMinimizedPanel, proportion=2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=0)
-# windowSbSizer.AddStretchSpacer()
 
 # A combined panel for broadcast settings and paired devices
 broadcastAndPairedDevicePanel = wx.Panel(appPanel)
 broadcastAndPairedDeviceSizer = wx.BoxSizer(wx.VERTICAL)
 
-leBroadcastSb = wx.StaticBox(broadcastAndPairedDevicePanel, wx.ID_ANY, _("LE Broadcast"))
-leBroadcastSbSizer = wx.StaticBoxSizer(leBroadcastSb, wx.VERTICAL)
-leBroadcastSwitchPanel = wx.Panel(leBroadcastSb)
-leBroadcastSwitchPanelSizer = wx.FlexGridSizer(5, 2, (0, 0))
+saved_bs = settings.get_item("aux_blocksize")
+looper = FlooAuxInput(blocksize=saved_bs)
+auxInput = None
+inputDevices = looper.list_additional_inputs()
+nameInputDevices = {d["name"]: d for d in inputDevices}
+saved_device = settings.get_item("aux_input")  # may be None
+saved_name = (saved_device or {}).get("name", "None")
+
+broadcastPanel = BroadcastPanel(broadcastAndPairedDevicePanel, _, on, off, inputDevices)
+leBroadcastSb = broadcastPanel.static_box
+leBroadcastSbSizer = broadcastPanel.sizer
+leBroadcastSwitchPanel = broadcastPanel.switch_panel
+leBroadcastSwitchPanelSizer = broadcastPanel.switch_panel_sizer
+publicBroadcastCheckBox = broadcastPanel.public_broadcast_checkbox
+publicBroadcastButton = broadcastPanel.public_broadcast_button
+broadcastHighQualityCheckBox = broadcastPanel.broadcast_high_quality_checkbox
+broadcastHighQualityButton = broadcastPanel.broadcast_high_quality_button
+broadcastEncryptCheckBox = broadcastPanel.broadcast_encrypt_checkbox
+broadcastEncryptButton = broadcastPanel.broadcast_encrypt_button
+broadcastStopOnIdleCheckBox = broadcastPanel.broadcast_stop_on_idle_checkbox
+broadcastStopOnIdleButton = broadcastPanel.broadcast_stop_on_idle_button
+leBroadcastEntryPanel = broadcastPanel.entry_panel
+leBroadcastEntryPanelSizer = broadcastPanel.entry_panel_sizer
+broadcastNameLabel = broadcastPanel.broadcast_name_label
+broadcastNameEntry = broadcastPanel.broadcast_name_entry
+broadcastKey = broadcastPanel.broadcast_key_label
+broadcastKeyEntry = broadcastPanel.broadcast_key_entry
+leBroadcastLatencyPanel = broadcastPanel.latency_panel
+leBroadcastLatencyPanelSizer = broadcastPanel.latency_panel_sizer
+broadcastLatencyLabel = broadcastPanel.broadcast_latency_label
+leBroadcastLatencyRadioPanel = broadcastPanel.latency_radio_panel
+leBroadcastLatencyRadioPanelSizer = broadcastPanel.latency_radio_sizer
+latencyLowestRadioButton = broadcastPanel.latency_lowest_radio
+latencyLowerRadioButton = broadcastPanel.latency_lower_radio
+latencyDefaultRadioButton = broadcastPanel.latency_default_radio
+leBroadcastAuxInputPanel = broadcastPanel.aux_input_panel
+leBroadcastAuxInputPanelSizer = broadcastPanel.aux_input_panel_sizer
+auxInputLabel = broadcastPanel.aux_input_label
+auxInputComboBox = broadcastPanel.aux_input_combo
 
 publicBroadcastEnable = None
 
@@ -363,21 +338,6 @@ def public_broadcast_enable_switch(event):
     public_broadcast_enable_switch_set(not publicBroadcastEnable, False)
 
 
-publicBroadcastCheckBox = wx.CheckBox(
-    leBroadcastSwitchPanel,
-    wx.ID_ANY,
-    label=_("Public broadcast")
-    + " ("
-    + _("Must be enabled for compatibility with")
-    + " Auracast\u2122)",
-)
-publicBroadcastButton = wx.Button(
-    leBroadcastSwitchPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE
-)
-publicBroadcastButton.SetToolTip(
-    _("Toggle switch for") + " " + _("Public broadcast") + " " + _("Off")
-)
-publicBroadcastButton.SetBitmap(off)
 leBroadcastSwitchPanel.Bind(
     wx.EVT_CHECKBOX, public_broadcast_enable_switch, publicBroadcastCheckBox
 )
@@ -413,25 +373,6 @@ def broadcast_high_quality_enable_switch(event):
     broadcast_high_quality_switch_set(not broadcastHighQualityEnable, False)
 
 
-broadcastHighQualityCheckBox = wx.CheckBox(
-    leBroadcastSwitchPanel,
-    wx.ID_ANY,
-    label=_("Broadcast high-quality music, otherwise, voice")
-    + " ("
-    + _("Must be disabled for compatibility with")
-    + " Auracast\u2122)",
-)
-broadcastHighQualityButton = wx.Button(
-    leBroadcastSwitchPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE
-)
-broadcastHighQualityButton.SetToolTip(
-    _("Toggle switch for")
-    + " "
-    + _("Broadcast high-quality music, otherwise, voice")
-    + " "
-    + _("Off")
-)
-broadcastHighQualityButton.SetBitmap(off)
 leBroadcastSwitchPanel.Bind(
     wx.EVT_CHECKBOX, broadcast_high_quality_enable_switch, broadcastHighQualityCheckBox
 )
@@ -468,16 +409,6 @@ def broadcast_encrypt_enable_switch(event):
     broadcast_encrypt_switch_set(not broadcastEncryptEnable, False)
 
 
-broadcastEncryptCheckBox = wx.CheckBox(
-    leBroadcastSwitchPanel, wx.ID_ANY, label=_("Encrypt broadcast; please set a key first")
-)
-broadcastEncryptButton = wx.Button(
-    leBroadcastSwitchPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE
-)
-broadcastEncryptButton.SetToolTip(
-    _("Toggle switch for") + " " + _("Encrypt broadcast; please set a key first") + " " + _("Off")
-)
-broadcastEncryptButton.SetBitmap(off)
 leBroadcastSwitchPanel.Bind(
     wx.EVT_CHECKBOX, broadcast_encrypt_enable_switch, broadcastEncryptCheckBox
 )
@@ -514,41 +445,10 @@ def broadcast_stop_on_idle_enable_switch(event):
     broadcast_stop_on_idle_switch_set(not broadcastStopOnIdleEnable, False)
 
 
-broadcastStopOnIdleCheckBox = wx.CheckBox(
-    leBroadcastSwitchPanel,
-    wx.ID_ANY,
-    label=_("Stop broadcasting immediately when USB audio playback ends"),
-)
-broadcastStopOnIdleButton = wx.Button(
-    leBroadcastSwitchPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE
-)
-broadcastStopOnIdleButton.SetToolTip(
-    _("Toggle switch for")
-    + " "
-    + _("Stop broadcasting immediately when USB audio playback ends")
-    + " "
-    + _("Off")
-)
-broadcastStopOnIdleButton.SetBitmap(off)
 leBroadcastSwitchPanel.Bind(
     wx.EVT_CHECKBOX, broadcast_stop_on_idle_enable_switch, broadcastStopOnIdleCheckBox
 )
 broadcastStopOnIdleButton.Bind(wx.EVT_BUTTON, broadcast_stop_on_idle_enable_button)
-
-leBroadcastSwitchPanelSizer.Add(publicBroadcastCheckBox, flag=wx.ALIGN_LEFT)
-leBroadcastSwitchPanelSizer.Add(publicBroadcastButton, flag=wx.ALIGN_RIGHT)
-leBroadcastSwitchPanelSizer.Add(broadcastHighQualityCheckBox, flag=wx.ALIGN_LEFT)
-leBroadcastSwitchPanelSizer.Add(broadcastHighQualityButton, flag=wx.ALIGN_RIGHT)
-leBroadcastSwitchPanelSizer.Add(broadcastEncryptCheckBox, flag=wx.ALIGN_LEFT)
-leBroadcastSwitchPanelSizer.Add(broadcastEncryptButton, flag=wx.ALIGN_RIGHT)
-leBroadcastSwitchPanelSizer.Add(broadcastStopOnIdleCheckBox, flag=wx.ALIGN_LEFT)
-leBroadcastSwitchPanelSizer.Add(broadcastStopOnIdleButton, flag=wx.ALIGN_RIGHT)
-
-leBroadcastSwitchPanelSizer.AddGrowableCol(0, 0)
-leBroadcastSwitchPanelSizer.AddGrowableCol(1, 1)
-
-leBroadcastEntryPanel = wx.Panel(leBroadcastSb)
-leBroadcastEntryPanelSizer = wx.FlexGridSizer(2, 2, (0, 0))
 
 
 # Broadcast name entry function
@@ -561,15 +461,6 @@ def broadcast_name_entry(event):
     event.Skip()
 
 
-broadcastNameLabel = wx.StaticText(
-    leBroadcastEntryPanel, wx.ID_ANY, label=_("Broadcast Name, maximum 30 characters")
-)
-broadcastNameEntry = wx.SearchCtrl(leBroadcastEntryPanel, wx.ID_ANY)
-broadcastNameEntry.ShowSearchButton(False)
-broadcastNameEntry.SetHint(_("Input a new name of no more than 30 characters then press <ENTER>"))
-broadcastNameEntry.SetDescriptiveText(
-    _("Input a new name of no more than 30 characters then press <ENTER>")
-)
 broadcastNameEntry.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, broadcast_name_entry)
 broadcastNameEntry.Bind(wx.EVT_KILL_FOCUS, broadcast_name_entry)
 
@@ -583,54 +474,8 @@ def broadcast_key_entry(event):
     event.Skip()
 
 
-broadcastKey = wx.StaticText(
-    leBroadcastEntryPanel, wx.ID_ANY, label=_("Broadcast Key, maximum 16 characters")
-)
-broadcastKeyEntry = wx.SearchCtrl(leBroadcastEntryPanel, wx.ID_ANY, style=wx.TE_PASSWORD)
-broadcastKeyEntry.ShowSearchButton(False)
-# broadcastKeyEntry.SetHint(_("Input a new key then press <ENTER>"))
-broadcastKeyEntry.SetDescriptiveText(_("Input a new key then press <ENTER>"))
 broadcastKeyEntry.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, broadcast_key_entry)
 broadcastKeyEntry.Bind(wx.EVT_KILL_FOCUS, broadcast_key_entry)
-
-leBroadcastEntryPanelSizer.Add(broadcastNameLabel, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-leBroadcastEntryPanelSizer.Add(broadcastNameEntry, flag=wx.EXPAND | wx.LEFT, border=8)
-leBroadcastEntryPanelSizer.Add(broadcastKey, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-leBroadcastEntryPanelSizer.Add(broadcastKeyEntry, flag=wx.EXPAND | wx.LEFT, border=8)
-
-leBroadcastEntryPanelSizer.AddGrowableCol(0, 1)
-leBroadcastEntryPanelSizer.AddGrowableCol(1, 1)
-leBroadcastEntryPanel.SetSizer(leBroadcastEntryPanelSizer)
-
-leBroadcastLatencyPanel = wx.Panel(leBroadcastSb)
-leBroadcastLatencyPanelSizer = wx.FlexGridSizer(1, 2, (0, 0))
-broadcastLatencyLabel = wx.StaticText(
-    leBroadcastLatencyPanel, wx.ID_ANY, label=_("Broadcast Latency")
-)
-leBroadcastLatencyPanelSizer.Add(
-    broadcastLatencyLabel, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL
-)
-leBroadcastLatencyRadioPanel = wx.Panel(leBroadcastLatencyPanel)
-leBroadcastLatencyRadioPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
-latencyLowestRadioButton = wx.RadioButton(
-    leBroadcastLatencyRadioPanel, label=_("Lowest"), style=wx.RB_GROUP
-)
-latencyLowerRadioButton = wx.RadioButton(leBroadcastLatencyRadioPanel, label=_("Lower"))
-latencyDefaultRadioButton = wx.RadioButton(leBroadcastLatencyRadioPanel, label=_("Default"))
-leBroadcastLatencyRadioPanelSizer.Add(latencyLowestRadioButton, 0, wx.EXPAND | wx.LEFT, 10)
-leBroadcastLatencyRadioPanelSizer.Add(latencyLowerRadioButton, 0, wx.EXPAND | wx.LEFT, 10)
-leBroadcastLatencyRadioPanelSizer.Add(latencyDefaultRadioButton, 0, wx.EXPAND | wx.LEFT, 10)
-# leBroadcastLatencyRadioPanelSizer.AddGrowableCol(0, 1)
-# leBroadcastLatencyRadioPanelSizer.AddGrowableCol(1, 1)
-# leBroadcastLatencyRadioPanelSizer.AddGrowableCol(2, 1)
-leBroadcastLatencyRadioPanel.SetSizer(leBroadcastLatencyRadioPanelSizer)
-
-leBroadcastLatencyPanelSizer.Add(
-    leBroadcastLatencyRadioPanel, flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8
-)
-# leBroadcastLatencyPanelSizer.AddGrowableCol(0, 1)
-leBroadcastLatencyPanelSizer.AddGrowableCol(1, 1)
-leBroadcastLatencyPanel.SetSizer(leBroadcastLatencyPanelSizer)
 
 
 def broadcast_latency_sel(event):
@@ -645,17 +490,6 @@ def broadcast_latency_sel(event):
 
 
 leBroadcastLatencyRadioPanel.Bind(wx.EVT_RADIOBUTTON, broadcast_latency_sel)
-
-leBroadcastAuxInputPanel = wx.Panel(leBroadcastSb)
-leBroadcastAuxInputPanelSizer = wx.FlexGridSizer(1, 2, (0, 0))
-
-saved_bs = settings.get_item("aux_blocksize")
-looper = FlooAuxInput(blocksize=saved_bs)
-auxInput = None
-inputDevices = looper.list_additional_inputs()
-nameInputDevices = {d["name"]: d for d in inputDevices}
-saved_device = settings.get_item("aux_input")  # may be None
-saved_name = (saved_device or {}).get("name", "None")
 
 
 # AUX Input device select function
@@ -676,34 +510,13 @@ def input_device_on_select(event):
     print(f"User chose: {saved_name} -> applied and saved")
 
 
-auxInputLabel = wx.StaticText(
-    leBroadcastAuxInputPanel, wx.ID_ANY, label=_("Broadcast Additional Audio Input")
-)
-auxInputComboBox = wx.ComboBox(
-    leBroadcastAuxInputPanel, style=wx.CB_READONLY, choices=[d["name"] for d in inputDevices]
-)
 auxInputComboBox.Bind(wx.EVT_COMBOBOX, input_device_on_select)
-leBroadcastAuxInputPanelSizer.Add(auxInputLabel, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-leBroadcastAuxInputPanelSizer.Add(
-    auxInputComboBox, flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8
-)
-# leBroadcastLatencyPanelSizer.AddGrowableCol(0, 1)
-leBroadcastAuxInputPanelSizer.AddGrowableCol(1, 1)
-leBroadcastAuxInputPanel.SetSizer(leBroadcastAuxInputPanelSizer)
 
-leBroadcastSbSizer.Add(leBroadcastSwitchPanel, flag=wx.EXPAND | wx.TOP, border=4)
-leBroadcastSbSizer.Add(leBroadcastEntryPanel, flag=wx.EXPAND | wx.TOP, border=4)
-leBroadcastSbSizer.Add(leBroadcastLatencyPanel, flag=wx.EXPAND | wx.TOP, border=4)
-leBroadcastSbSizer.Add(leBroadcastAuxInputPanel, flag=wx.EXPAND | wx.TOP, border=4)
-leBroadcastSwitchPanel.SetSizer(leBroadcastSwitchPanelSizer)
-
-pairedDevicesSb = wx.StaticBox(
-    broadcastAndPairedDevicePanel, wx.ID_ANY, _("Most Recently Used Devices")
-)
-pairedDevicesSbPanelSizer = wx.StaticBoxSizer(pairedDevicesSb, wx.VERTICAL)
-
-pairedDevicesSbButtonPanel = wx.Panel(pairedDevicesSb)
-pairedDevicesSbButtonPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
+pairedDevicesPanel = PairedDevicesPanel(broadcastAndPairedDevicePanel, _)
+pairedDevicesSb = pairedDevicesPanel.static_box
+pairedDevicesSbPanelSizer = pairedDevicesPanel.sizer
+pairedDevicesSbButtonPanel = pairedDevicesPanel.button_panel
+pairedDevicesSbButtonPanelSizer = pairedDevicesPanel.button_panel_sizer
 
 
 # New pairing button function
@@ -716,14 +529,10 @@ def button_clear_all(event):
     flooSm.clearAllPairedDevices()
 
 
-newPairingButton = wx.Button(pairedDevicesSbButtonPanel, wx.ID_ANY, label=_("Add device"))
-clearAllButton = wx.Button(pairedDevicesSbButtonPanel, wx.ID_ANY, label=_("Clear All"))
-pairedDevicesSbButtonPanelSizer.Add(newPairingButton, flag=wx.LEFT)
-pairedDevicesSbButtonPanelSizer.AddStretchSpacer()
-pairedDevicesSbButtonPanelSizer.Add(clearAllButton, flag=wx.RIGHT)
+newPairingButton = pairedDevicesPanel.new_pairing_button
+clearAllButton = pairedDevicesPanel.clear_all_button
 newPairingButton.Bind(wx.EVT_BUTTON, button_new_pairing)
 clearAllButton.Bind(wx.EVT_BUTTON, button_clear_all)
-pairedDevicesSbButtonPanel.SetSizer(pairedDevicesSbButtonPanelSizer)
 
 
 class PopMenu(wx.Menu):
@@ -761,12 +570,9 @@ def OnContextMenu(Event):
     listBox.PopupMenu(PopMenu(listBox), pos)
 
 
-pairedDeviceListbox = wx.ListBox(pairedDevicesSb, style=wx.LB_SINGLE | wx.LB_ALWAYS_SB)
+pairedDeviceListbox = pairedDevicesPanel.device_listbox
 pairedDeviceListbox.Bind(wx.EVT_CONTEXT_MENU, OnContextMenu)
 currentPairedDeviceList = []
-
-pairedDevicesSbPanelSizer.Add(pairedDevicesSbButtonPanel, proportion=0, flag=wx.EXPAND)
-pairedDevicesSbPanelSizer.Add(pairedDeviceListbox, proportion=1, flag=wx.EXPAND)
 
 broadcastAndPairedDeviceSizer.Add(leBroadcastSbSizer, proportion=0, flag=wx.EXPAND)
 broadcastAndPairedDeviceSizer.Add(pairedDevicesSbPanelSizer, proportion=1, flag=wx.EXPAND)
@@ -775,8 +581,28 @@ broadcastAndPairedDevicePanel.SetSizer(broadcastAndPairedDeviceSizer)
 # Settings panel
 aboutSb = wx.StaticBox(appPanel, wx.ID_ANY, _("Settings"))
 aboutSbSizer = wx.StaticBoxSizer(aboutSb, wx.VERTICAL)
-settingsPanel = wx.Panel(aboutSb)
-settingsPanelSizer = wx.FlexGridSizer(4, 2, (5, 0))
+settingsPanelObj = SettingsPanel(aboutSb, _, on, off)
+settingsPanel = settingsPanelObj.panel
+settingsPanelSizer = settingsPanelObj.sizer
+usbInputCheckBox = settingsPanelObj.usb_input_checkbox
+usbInputEnableButton = settingsPanelObj.usb_input_button
+ledCheckBox = settingsPanelObj.led_checkbox
+ledEnableButton = settingsPanelObj.led_button
+aptxLosslessCheckBox = settingsPanelObj.aptx_lossless_checkbox
+aptxLosslessEnableButton = settingsPanelObj.aptx_lossless_button
+gattClientWithBroadcastCheckBox = settingsPanelObj.gatt_client_checkbox
+gattClientWithBroadcastEnableButton = settingsPanelObj.gatt_client_button
+
+versionPanelObj = VersionPanel(aboutSb, app_path, appLogoPng, _)
+versionPanel = versionPanelObj.panel
+versionPanelSizer = versionPanelObj.sizer
+logoStaticBmp = versionPanelObj.logo
+thirdPartyLink = versionPanelObj.third_party_link
+supportLink = versionPanelObj.support_link
+versionInfo = versionPanelObj.version_info
+dfuInfo = versionPanelObj.dfu_info
+newFirmwareUrl = versionPanelObj.new_firmware_url
+firmwareDesc = versionPanelObj.firmware_desc
 
 usbInputEnable = None
 
@@ -809,12 +635,6 @@ def usb_input_enable_switch(event):
     usb_input_enable_switch_set(not usbInputEnable, False)
 
 
-usbInputCheckBox = wx.CheckBox(settingsPanel, wx.ID_ANY, label=_("USB Audio Input"))
-usbInputEnableButton = wx.Button(settingsPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE)
-usbInputEnableButton.SetToolTip(
-    _("Toggle switch for") + " " + _("USB Audio Input") + " " + _(" Off")
-)
-usbInputEnableButton.SetBitmap(off)
 settingsPanel.Bind(wx.EVT_CHECKBOX, usb_input_enable_switch, usbInputCheckBox)
 usbInputEnableButton.Bind(wx.EVT_BUTTON, usb_input_enable_button)
 
@@ -845,10 +665,6 @@ def led_enable_switch(event):
     led_enable_switch_set(not ledEnable, False)
 
 
-ledCheckBox = wx.CheckBox(settingsPanel, wx.ID_ANY, label=_("LED"))
-ledEnableButton = wx.Button(settingsPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE)
-ledEnableButton.SetToolTip(_("Toggle switch for") + " " + _("LED") + " " + _(" Off"))
-ledEnableButton.SetBitmap(off)
 settingsPanel.Bind(wx.EVT_CHECKBOX, led_enable_switch, ledCheckBox)
 ledEnableButton.Bind(wx.EVT_BUTTON, led_enable_button)
 
@@ -882,12 +698,6 @@ def aptxLossless_enable_switch(event):
     aptxLossless_enable_switch_set(not aptxLosslessEnable, False)
 
 
-aptxLosslessCheckBox = wx.CheckBox(settingsPanel, wx.ID_ANY, label="aptX\u2122 Lossless")
-aptxLosslessEnableButton = wx.Button(settingsPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE)
-aptxLosslessEnableButton.SetToolTip(
-    _("Toggle switch for") + " " + _("aptX Lossless") + " " + _("Off")
-)
-aptxLosslessEnableButton.SetBitmap(off)  # , wx.RIGHT
 settingsPanel.Bind(wx.EVT_CHECKBOX, aptxLossless_enable_switch, aptxLosslessCheckBox)
 aptxLosslessEnableButton.Bind(wx.EVT_BUTTON, aptxLossless_enable_button)
 
@@ -923,67 +733,9 @@ def gatt_client_enable_switch(event):
     gatt_client_enable_switch_set(not gattClientWithBroadcastEnable, False)
 
 
-gattClientWithBroadcastCheckBox = wx.CheckBox(settingsPanel, wx.ID_ANY, label="GATT " + _("Client"))
-gattClientWithBroadcastEnableButton = wx.Button(
-    settingsPanel, wx.ID_ANY, style=wx.NO_BORDER | wx.MINIMIZE
-)
-gattClientWithBroadcastEnableButton.SetToolTip(
-    _("Toggle switch for") + " " + ("GATT ") + _("Client") + " " + _("Off")
-)
-gattClientWithBroadcastEnableButton.SetBitmap(off)  # , wx.RIGHT
 settingsPanel.Bind(wx.EVT_CHECKBOX, gatt_client_enable_switch, gattClientWithBroadcastCheckBox)
 gattClientWithBroadcastEnableButton.Bind(wx.EVT_BUTTON, gatt_client_enable_button)
 
-settingsPanelSizer.Add(usbInputCheckBox, 1, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-settingsPanelSizer.Add(usbInputEnableButton, flag=wx.ALIGN_RIGHT)
-settingsPanelSizer.Add(ledCheckBox, 1, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-settingsPanelSizer.Add(ledEnableButton, flag=wx.ALIGN_RIGHT)
-settingsPanelSizer.Add(aptxLosslessCheckBox, 1, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-settingsPanelSizer.Add(aptxLosslessEnableButton, flag=wx.ALIGN_RIGHT)
-settingsPanelSizer.Add(
-    gattClientWithBroadcastCheckBox, 1, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL
-)
-settingsPanelSizer.Add(gattClientWithBroadcastEnableButton, flag=wx.ALIGN_RIGHT)
-settingsPanelSizer.Hide(usbInputCheckBox)
-settingsPanelSizer.Hide(usbInputEnableButton)
-settingsPanelSizer.Hide(aptxLosslessCheckBox)
-settingsPanelSizer.Hide(aptxLosslessEnableButton)
-settingsPanelSizer.Hide(gattClientWithBroadcastCheckBox)
-settingsPanelSizer.Hide(gattClientWithBroadcastEnableButton)
-
-settingsPanelSizer.AddGrowableCol(0, 1)
-settingsPanelSizer.AddGrowableCol(1, 0)
-settingsPanel.SetSizer(settingsPanelSizer)
-
-versionPanel = wx.Panel(aboutSb)
-versionPanelSizer = wx.BoxSizer(wx.VERTICAL)
-logoImg = wx.Image(app_path + os.sep + appLogoPng, wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-logoStaticBmp = wx.StaticBitmap(versionPanel, wx.ID_ANY, logoImg)
-logoStaticBmp.SetToolTip(_("FlooGoo"))
-versionPanelSizer.Add(logoStaticBmp, flag=wx.ALIGN_CENTER)
-copyRightText = "Copyright© 2023~2025 Flairmesh Technologies."
-copyRightInfo = wx.StaticText(versionPanel, wx.ID_ANY, label=copyRightText)
-versionPanelSizer.Add(copyRightInfo, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
-font = wx.Font(
-    pointSize=10, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, faceName="Consolas"
-)
-dc = wx.ScreenDC()
-dc.SetFont(font)
-settingsMaxWidth, notUsed = dc.GetTextExtent(copyRightText)
-thirdPartyLink = hl.HyperLinkCtrl(
-    versionPanel,
-    wx.ID_ANY,
-    _("Third-Party Software Licenses"),
-    URL="https://www.flairmesh.com/support/third_lic.html",
-)
-versionPanelSizer.Add(thirdPartyLink, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
-supportLink = hl.HyperLinkCtrl(
-    versionPanel, wx.ID_ANY, _("Support Link"), URL="https://www.flairmesh.com/Dongle/FMA120.html"
-)
-versionPanelSizer.Add(supportLink, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
-versionPanel.SetSizer(versionPanelSizer)
-versionInfo = wx.StaticText(versionPanel, wx.ID_ANY, label=_("Version") + " 1.2.0")
-versionPanelSizer.Add(versionInfo, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
 
 dfuUndergoing = False
 
@@ -1047,15 +799,6 @@ def button_dfu(event):
                 dfuThread = FlooDfuThread([app_path, filename], update_dfu_info)
                 dfuThread.start()
 
-
-dfuInfo = wx.StaticText(versionPanel, wx.ID_ANY, "")
-versionPanelSizer.Add(dfuInfo, flag=wx.ALIGN_CENTER)
-newFirmwareUrl = hl.HyperLinkCtrl(versionPanel, wx.ID_ANY, _("New Firmware is available"), URL="")
-versionPanelSizer.Add(newFirmwareUrl, flag=wx.ALIGN_CENTER)
-versionPanelSizer.Hide(newFirmwareUrl)
-firmwareDesc = wx.StaticText(versionPanel, wx.ID_ANY, "")
-versionPanelSizer.Add(firmwareDesc, flag=wx.ALIGN_CENTER | wx.TOP, border=16)
-versionPanelSizer.Hide(firmwareDesc)
 
 aboutSbSizer.Add(settingsPanel, proportion=1, flag=wx.EXPAND)
 aboutSbSizer.Add(versionPanel, proportion=3, flag=wx.TOP, border=4)
