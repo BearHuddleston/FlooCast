@@ -42,6 +42,19 @@ class FeatureBit:
     AUDIO_SOURCE = 0x08
 
 
+class BroadcastModeBit:
+    """Broadcast mode bit masks."""
+
+    ENCRYPT = 0x01
+    PUBLIC = 0x02
+    HIGH_QUALITY = 0x04
+    STOP_ON_IDLE = 0x08
+    LATENCY_MASK = 0x30
+    LATENCY_SHIFT = 4
+    FLAGS_MASK = 0x0F
+    ALL_MASK = 0x3F
+
+
 def _wx_call_after(func, *args):
     import wx
 
@@ -329,46 +342,62 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self.inf.sendMsg(cmdPreferLea)
 
     def setPublicBroadcast(self, enable: bool):
-        oldValue = self.broadcastMode & 2 == 2
+        bit = BroadcastModeBit.PUBLIC
+        oldValue = self.broadcastMode & bit != 0
         if oldValue != enable:
             print("setPublicBroadcast")
-            self.pendingCmdPara = (self.broadcastMode & 0x3D) + (2 if enable else 0)
+            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                bit if enable else 0
+            )
             cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
             self.lastCmd = cmdSetBroadcastMode
             self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastHighQuality(self, enable: bool):
-        oldValue = self.broadcastMode & 4 == 4
+        bit = BroadcastModeBit.HIGH_QUALITY
+        oldValue = self.broadcastMode & bit != 0
         if oldValue != enable:
             print("setBroadcastHighQuality")
-            self.pendingCmdPara = (self.broadcastMode & 0x3B) + (4 if enable else 0)
+            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                bit if enable else 0
+            )
             cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
             self.lastCmd = cmdSetBroadcastMode
             self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastEncrypt(self, enable: bool):
-        oldValue = self.broadcastMode & 1 == 1
+        bit = BroadcastModeBit.ENCRYPT
+        oldValue = self.broadcastMode & bit != 0
         if oldValue != enable:
             print("setBroadcastEncrypt old: %d, new %d" % (oldValue, enable))
-            self.pendingCmdPara = (self.broadcastMode & 0x3E) + (1 if enable else 0)
+            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                bit if enable else 0
+            )
             cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
             self.lastCmd = cmdSetBroadcastMode
             self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastStopOnIdle(self, enable: bool):
-        oldValue = self.broadcastMode & 8 == 8
+        bit = BroadcastModeBit.STOP_ON_IDLE
+        oldValue = self.broadcastMode & bit != 0
         if oldValue != enable:
             print("setBroadcastStopOnIdle old: %d, new %d" % (oldValue, enable))
-            self.pendingCmdPara = (self.broadcastMode & 0x37) + (8 if enable else 0)
+            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                bit if enable else 0
+            )
             cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
             self.lastCmd = cmdSetBroadcastMode
             self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastLatency(self, mode: int):
-        oldValue = (self.broadcastMode & 0x30) >> 4
+        oldValue = (
+            self.broadcastMode & BroadcastModeBit.LATENCY_MASK
+        ) >> BroadcastModeBit.LATENCY_SHIFT
         if oldValue != mode:
             print("setBroadcastLatency old: %d, new %d" % (oldValue, mode))
-            self.pendingCmdPara = (self.broadcastMode & 0xF) + (mode << 4)
+            self.pendingCmdPara = (self.broadcastMode & BroadcastModeBit.FLAGS_MASK) | (
+                mode << BroadcastModeBit.LATENCY_SHIFT
+            )
             cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
             self.lastCmd = cmdSetBroadcastMode
             self.inf.sendMsg(cmdSetBroadcastMode)
