@@ -19,13 +19,6 @@ class VersionPanel:
         self.copy_right_info = wx.StaticText(self.panel, wx.ID_ANY, label=copy_right_text)
         self.sizer.Add(self.copy_right_info, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=4)
 
-        font = wx.Font(
-            pointSize=10, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, faceName="Consolas"
-        )
-        dc = wx.ScreenDC()
-        dc.SetFont(font)
-        dc.GetTextExtent(copy_right_text)
-
         self.third_party_link = hl.HyperLinkCtrl(
             self.panel,
             wx.ID_ANY,

@@ -59,6 +59,3 @@ class WindowPanel:
         self.sizer.Add(
             self.start_minimized_panel, proportion=2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=0
         )
-
-        self.on_bitmap = on_bitmap
-        self.off_bitmap = off_bitmap

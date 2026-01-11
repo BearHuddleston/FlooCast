@@ -88,7 +88,7 @@ hwWithAnalogInput = 0
 
 # Audio mode panel
 audioMode = None
-audioModePanel = AudioModePanel(appPanel, _, on, off, codecStr)
+audioModePanel = AudioModePanel(appPanel, _, off, codecStr)
 audioModeSb = audioModePanel.static_box
 audioModeSbSizer = audioModePanel.sizer
 audioModeUpperPanel = audioModePanel.upper_panel
@@ -276,7 +276,7 @@ nameInputDevices = {d["name"]: d for d in inputDevices}
 saved_device = settings.get_item("aux_input")  # may be None
 saved_name = (saved_device or {}).get("name", "None")
 
-broadcastPanel = BroadcastPanel(broadcastAndPairedDevicePanel, _, on, off, inputDevices)
+broadcastPanel = BroadcastPanel(broadcastAndPairedDevicePanel, _, off, inputDevices)
 leBroadcastSb = broadcastPanel.static_box
 leBroadcastSbSizer = broadcastPanel.sizer
 leBroadcastSwitchPanel = broadcastPanel.switch_panel
@@ -814,11 +814,6 @@ appSizer.AddGrowableCol(0, 1)
 appSizer.AddGrowableCol(1, 0)
 
 appPanel.SetSizer(appSizer)
-
-
-def update_status_bar(info: str):
-    global statusBar
-    statusBar.SetStatusText(text=info)
 
 
 def enable_settings_widgets(enable: bool):

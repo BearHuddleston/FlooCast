@@ -15,7 +15,7 @@ class SettingsPanel:
             + " "
             + translate("USB Audio Input")
             + " "
-            + translate(" Off")
+            + translate("Off")
         )
         self.usb_input_button.SetBitmap(off_bitmap)
 
@@ -74,6 +74,3 @@ class SettingsPanel:
         self.sizer.AddGrowableCol(0, 1)
         self.sizer.AddGrowableCol(1, 0)
         self.panel.SetSizer(self.sizer)
-
-        self.on_bitmap = on_bitmap
-        self.off_bitmap = off_bitmap

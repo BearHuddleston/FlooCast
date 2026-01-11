@@ -2,7 +2,7 @@ import wx
 
 
 class AudioModePanel:
-    def __init__(self, parent, translate, on_bitmap, off_bitmap, codec_strings):
+    def __init__(self, parent, translate, off_bitmap, codec_strings):
         self.static_box = wx.StaticBox(parent, wx.ID_ANY, translate("Audio Mode"))
         self.sizer = wx.StaticBoxSizer(self.static_box, wx.VERTICAL)
 
