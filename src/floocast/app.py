@@ -32,6 +32,7 @@ from floocast.gui.panels import (
     VersionPanel,
     WindowPanel,
 )
+from floocast.gui.state import GuiState
 from floocast.gui.toggle_switch import ToggleSwitchController
 from floocast.gui.tray_icon import FlooCastTrayIcon
 from floocast.protocol.state_machine import FlooStateMachine
@@ -65,7 +66,13 @@ codecFormatter = CodecDisplayFormatter(codecStr, _)
 # create root window
 app = wx.App(False)
 settings = FlooSettings()
-startMinimized = bool(settings.get_item("start_minimized") or False)
+
+state = GuiState(
+    start_minimized=bool(settings.get_item("start_minimized") or False),
+    saved_blocksize=settings.get_item("aux_blocksize"),
+    saved_device=settings.get_item("aux_input"),
+    saved_name=(settings.get_item("aux_input") or {}).get("name", "None"),
+)
 
 appFrame = wx.Frame(None, wx.ID_ANY, "FlooCast", size=wx.Size(mainWindowWidth, mainWindowHeight))
 appFrame.SetIcon(wx.Icon(app_path + os.sep + appIcon))
@@ -89,11 +96,7 @@ off = wx.Bitmap(app_path + os.sep + "offS.png")
 appPanel = wx.Panel(appFrame)
 appSizer = wx.FlexGridSizer(2, 2, vgap=2, hgap=4)
 
-# Hardware variant FMA120 (USB only) or FMA120 (with 3.5mm analog input)
-hwWithAnalogInput = 0
-
 # Audio mode panel
-audioMode = None
 audioModePanel = AudioModePanel(appPanel, _, off, codecStr)
 audioModeSb = audioModePanel.static_box
 audioModeSbSizer = audioModePanel.sizer
@@ -118,55 +121,53 @@ preferLeButton = audioModePanel.prefer_lea_button
 
 
 def aux_input_broadcast_enable(enable):
-    if enable and saved_name in nameInputDevices:
-        auxInputComboBox.SetValue(saved_name)
-        looper.set_input(saved_device)
+    if enable and state.saved_name in state.name_input_devices:
+        auxInputComboBox.SetValue(state.saved_name)
+        state.looper.set_input(state.saved_device)
     else:
-        # auxInputComboBox.SetValue("None")
-        looper.set_input(None)
+        state.looper.set_input(None)
 
 
 def audio_mode_sel_set(mode):
-    if hwWithAnalogInput:
+    if state.hw_with_analog_input:
         settingsPanelSizer.Show(usbInputCheckBox)
         settingsPanelSizer.Show(usbInputEnableButton)
     else:
         settingsPanelSizer.Hide(usbInputCheckBox)
         settingsPanelSizer.Hide(usbInputEnableButton)
-    if audioMode == 0:
+    if state.audio_mode == 0:
         settingsPanelSizer.Show(aptxLosslessCheckBox)
         settingsPanelSizer.Show(aptxLosslessEnableButton)
         settingsPanelSizer.Hide(gattClientWithBroadcastCheckBox)
         settingsPanelSizer.Hide(gattClientWithBroadcastEnableButton)
         leBroadcastSb.Disable()
-    elif audioMode == 1:
+    elif state.audio_mode == 1:
         settingsPanelSizer.Hide(aptxLosslessCheckBox)
         settingsPanelSizer.Hide(aptxLosslessEnableButton)
         settingsPanelSizer.Hide(gattClientWithBroadcastCheckBox)
         settingsPanelSizer.Hide(gattClientWithBroadcastEnableButton)
         leBroadcastSb.Disable()
-    elif audioMode == 2:
+    elif state.audio_mode == 2:
         settingsPanelSizer.Hide(aptxLosslessCheckBox)
         settingsPanelSizer.Hide(aptxLosslessEnableButton)
         settingsPanelSizer.Show(gattClientWithBroadcastCheckBox)
         settingsPanelSizer.Show(gattClientWithBroadcastEnableButton)
         leBroadcastSb.Enable()
-    aux_input_broadcast_enable(audioMode == 2)
+    aux_input_broadcast_enable(state.audio_mode == 2)
     settingsPanelSizer.Layout()
 
 
 def audio_mode_sel(event):
-    global audioMode
     selectedLabel = event.GetEventObject().GetLabel()
     if selectedLabel == audioModeHighQualityRadioButton.GetLabel():
-        audioMode = 0
+        state.audio_mode = 0
     elif selectedLabel == audioModeGamingRadioButton.GetLabel():
-        audioMode = 1
+        state.audio_mode = 1
     else:
-        audioMode = 2
-    audio_mode_sel_set(audioMode + (0x80 if hwWithAnalogInput else 0x00))
+        state.audio_mode = 2
+    audio_mode_sel_set(state.audio_mode + (0x80 if state.hw_with_analog_input else 0x00))
     settingsPanelSizer.Layout()
-    flooSm.setAudioMode(audioMode)
+    flooSm.setAudioMode(state.audio_mode)
 
 
 audioModeUpperPanel.Bind(wx.EVT_RADIOBUTTON, audio_mode_sel)
@@ -210,7 +211,7 @@ windowIcon = FlooCastTrayIcon(appFrame, app_path + os.sep + appIcon, _)
 windowIcon.run()
 appFrame.Bind(wx.EVT_CLOSE, quit_window)
 
-windowPanel = WindowPanel(appPanel, _, on, off, startMinimized)
+windowPanel = WindowPanel(appPanel, _, on, off, state.start_minimized)
 windowSb = windowPanel.static_box
 windowSbSizer = windowPanel.sizer
 minimizeButton = windowPanel.minimize_button
@@ -224,27 +225,26 @@ quitButton.Bind(wx.EVT_BUTTON, quit_window)
 
 
 def start_minimized_enable_switch_set(enable):
-    global startMinimized
-    startMinimized = enable
-    settings.set_item("start_minimized", enable)  # or False
+    state.start_minimized = enable
+    settings.set_item("start_minimized", enable)
     settings.save()
-    startMinimizedButton.SetBitmap(on if startMinimized else off)
+    startMinimizedButton.SetBitmap(on if state.start_minimized else off)
     startMinimizedButton.SetToolTip(
         _("Toggle switch for")
         + " "
         + _("Start Minimized")
         + " "
-        + (_("On") if startMinimized else _("Off"))
+        + (_("On") if state.start_minimized else _("Off"))
     )
 
 
 def start_minimized_enable_button(event):
-    startMinimizedCheckBox.SetValue(not startMinimized)
-    start_minimized_enable_switch_set(not startMinimized)
+    startMinimizedCheckBox.SetValue(not state.start_minimized)
+    start_minimized_enable_switch_set(not state.start_minimized)
 
 
 def start_minimized_enable_switch(event):
-    start_minimized_enable_switch_set(not startMinimized)
+    start_minimized_enable_switch_set(not state.start_minimized)
 
 
 windowSb.Bind(wx.EVT_CHECKBOX, start_minimized_enable_switch, startMinimizedCheckBox)
@@ -254,15 +254,11 @@ startMinimizedButton.Bind(wx.EVT_BUTTON, start_minimized_enable_button)
 broadcastAndPairedDevicePanel = wx.Panel(appPanel)
 broadcastAndPairedDeviceSizer = wx.BoxSizer(wx.VERTICAL)
 
-saved_bs = settings.get_item("aux_blocksize")
-looper = FlooAuxInput(blocksize=saved_bs)
-auxInput = None
-inputDevices = looper.list_additional_inputs()
-nameInputDevices = {d["name"]: d for d in inputDevices}
-saved_device = settings.get_item("aux_input")  # may be None
-saved_name = (saved_device or {}).get("name", "None")
+state.looper = FlooAuxInput(blocksize=state.saved_blocksize)
+state.input_devices = state.looper.list_additional_inputs()
+state.name_input_devices = {d["name"]: d for d in state.input_devices}
 
-broadcastPanel = BroadcastPanel(broadcastAndPairedDevicePanel, _, off, inputDevices)
+broadcastPanel = BroadcastPanel(broadcastAndPairedDevicePanel, _, off, state.input_devices)
 leBroadcastSb = broadcastPanel.static_box
 leBroadcastSbSizer = broadcastPanel.sizer
 leBroadcastSwitchPanel = broadcastPanel.switch_panel
@@ -394,20 +390,18 @@ leBroadcastLatencyRadioPanel.Bind(wx.EVT_RADIOBUTTON, broadcast_latency_sel)
 
 # AUX Input device select function
 def input_device_on_select(event):
-    global saved_device
-    global saved_name
-    saved_name = auxInputComboBox.GetValue()
-    dev = nameInputDevices.get(saved_name)
+    state.saved_name = auxInputComboBox.GetValue()
+    dev = state.name_input_devices.get(state.saved_name)
 
     # Save new selection
-    saved_device = looper.serialize_input_device(dev)
-    settings.set_item("aux_input", saved_device)
+    state.saved_device = state.looper.serialize_input_device(dev)
+    settings.set_item("aux_input", state.saved_device)
     settings.save()
 
     # Apply runtime
-    looper.set_input(saved_device)
+    state.looper.set_input(state.saved_device)
 
-    logger.info("User chose: %s -> applied and saved", saved_name)
+    logger.info("User chose: %s -> applied and saved", state.saved_name)
 
 
 auxInputComboBox.Bind(wx.EVT_COMBOBOX, input_device_on_select)
@@ -555,45 +549,35 @@ settingsPanel.Bind(
 gattClientWithBroadcastEnableButton.Bind(wx.EVT_BUTTON, gattClientToggle.on_button_click)
 
 
-dfuUndergoing = False
-
-# dfuInfoDefaultColor = dfuInfo.cget('foreground')
 dfuInfoBind = False
-firmwareVersion = ""
-firstBatch = ""
-firmwareVariant = 0
 
 
-def update_dfu_info(state: int):
-    global dfuUndergoing
-    global firmwareVersion
-    global dfuInfoBind
-
-    if state == FlooDfuThread.DFU_STATE_DONE:
+def update_dfu_info(dfu_state: int):
+    if dfu_state == FlooDfuThread.DFU_STATE_DONE:
         audioModeSb.Enable()
         windowSb.Enable()
         broadcastAndPairedDevicePanel.Enable()
         settingsPanel.Enable()
-        dfuInfo.SetLabelText(_("Firmware") + " " + firmwareVersion)
-        dfuUndergoing = False
-    elif state == FlooDfuThread.DFU_ERROR_NOT_SUPPORTED:
+        dfuInfo.SetLabelText(_("Firmware") + " " + state.firmware_version)
+        state.dfu_undergoing = False
+    elif dfu_state == FlooDfuThread.DFU_ERROR_NOT_SUPPORTED:
         dfuInfo.SetLabelText(_("DFU not supported on Linux"))
         windowSb.Enable()
-        dfuUndergoing = False
-    elif state > FlooDfuThread.DFU_STATE_DONE:
+        state.dfu_undergoing = False
+    elif dfu_state > FlooDfuThread.DFU_STATE_DONE:
         dfuInfo.SetLabelText(_("Upgrade error"))
         windowSb.Enable()
-        dfuUndergoing = True
+        state.dfu_undergoing = True
     else:
         versionPanelSizer.Hide(newFirmwareUrl)
         versionPanelSizer.Show(dfuInfo)
-        dfuInfo.SetLabelText(_("Upgrade progress") + (" %d" % state) + "%")
-        if not dfuUndergoing:
+        dfuInfo.SetLabelText(_("Upgrade progress") + (" %d" % dfu_state) + "%")
+        if not state.dfu_undergoing:
             audioModeSb.Disable()
             windowSb.Disable()
             broadcastAndPairedDevicePanel.Disable()
             settingsPanel.Disable()
-            dfuUndergoing = True
+            state.dfu_undergoing = True
     versionPanelSizer.Layout()
 
 
@@ -615,7 +599,7 @@ def button_dfu(event):
             fileBasename = os.path.splitext(filename)[0]
             if not re.search(r"\d+$", fileBasename):
                 fileBasename = fileBasename[:-1]
-            fileBasename += firstBatch
+            fileBasename += state.first_batch
             filename = fileBasename + ".bin"
             if os.path.isfile(filename):
                 dfuThread = FlooDfuThread([app_path, filename], update_dfu_info)
@@ -639,10 +623,10 @@ appPanel.SetSizer(appSizer)
 
 
 def enable_settings_widgets(enable: bool):
-    if dfuUndergoing:
+    if state.dfu_undergoing:
         return
     if enable:
-        if firmwareVariant != 0:
+        if state.firmware_variant != 0:
             audioModeSb.Disable()
         else:
             audioModeSb.Enable()
@@ -659,7 +643,7 @@ def enable_settings_widgets(enable: bool):
 
 enable_settings_widgets(False)
 
-if startMinimized:
+if state.start_minimized:
     appFrame.Iconize(True)
     appFrame.Hide()
 else:
@@ -669,67 +653,63 @@ else:
 # All GUI object initialized, start FlooStateMachine
 class FlooSmDelegate(FlooStateMachineDelegate):
     def deviceDetected(self, flag: bool, port: str, version: str = None):
-        global firmwareVersion
-        global firstBatch
-        global firmwareVariant
         global dfuInfoBind
-        global newFirmwareUrl
-        global firmwareDesc
-        global versionPanelSizer
-        global aboutSbSizer
 
         if flag:
             update_status_bar(_("Use FlooGoo dongle on ") + " " + port)
-            firstBatch = "" if re.search(r"\d+$", version) else version[-1]
-            firmwareVariant = 1 if version.startswith("AS1") else 0
-            firmwareVariant = 2 if version.startswith("AS2") else firmwareVariant
-            firmwareVersion = version if firstBatch == "" else version[:-1]
+            state.first_batch = "" if re.search(r"\d+$", version) else version[-1]
+            state.firmware_variant = 1 if version.startswith("AS1") else 0
+            state.firmware_variant = 2 if version.startswith("AS2") else state.firmware_variant
+            state.firmware_version = version if state.first_batch == "" else version[:-1]
             # firmwareVersion = firmwareVersion[2:] if a2dpSink else firmwareVersion
             try:
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
-                if firmwareVariant == 1:
+                if state.firmware_variant == 1:
                     url = "https://www.flairmesh.com/Dongle/FMA120/latest_as1"
-                elif firmwareVariant == 2:
+                elif state.firmware_variant == 2:
                     url = "https://www.flairmesh.com/Dongle/FMA120/latest_as2"
                 else:
                     url = "https://www.flairmesh.com/Dongle/FMA120/latest"
                 latest = urllib.request.urlopen(url, context=ssl_context, timeout=10).read()
                 latest = latest.decode("utf-8").rstrip()
             except (urllib.error.URLError, TimeoutError):
-                # print("Cann't get the latest version")
                 latest = "Unable"
 
-            if not dfuUndergoing:
+            if not state.dfu_undergoing:
                 if latest == "Unable":
                     newFirmwareUrl.SetLabelText(
-                        _("Current firmware: ") + firmwareVersion + _(", check the latest.")
+                        _("Current firmware: ") + state.firmware_version + _(", check the latest.")
                     )
                     newFirmwareUrl.SetURL("https://www.flairmesh.com/Dongle/FMA120.html")
                     versionPanelSizer.Show(newFirmwareUrl)
                     versionPanelSizer.Layout()
-                elif latest > firmwareVersion:
+                elif latest > state.firmware_version:
                     versionPanelSizer.Hide(dfuInfo)
                     newFirmwareUrl.SetLabelText(
-                        _("New Firmware is available") + " " + firmwareVersion + " -> " + latest
+                        _("New Firmware is available")
+                        + " "
+                        + state.firmware_version
+                        + " -> "
+                        + latest
                     )
                     newFirmwareUrl.SetURL(
                         "https://www.flairmesh.com/support/FMA120_" + latest + ".zip"
                     )
                     versionPanelSizer.Show(newFirmwareUrl)
-                    if firmwareVariant == 1:
+                    if state.firmware_variant == 1:
                         firmwareDesc.SetLabelText("Auracast\u2122 " + _("Receiver"))
                         versionPanelSizer.Show(firmwareDesc)
-                    elif firmwareVariant == 2:
+                    elif state.firmware_variant == 2:
                         firmwareDesc.SetLabelText("A2DP - Auracast\u2122 " + _("Relay"))
                         versionPanelSizer.Show(firmwareDesc)
                     versionPanelSizer.Layout()
                 else:
-                    dfuInfo.SetLabelText(_("Firmware") + " " + firmwareVersion)
+                    dfuInfo.SetLabelText(_("Firmware") + " " + state.firmware_version)
                     versionPanelSizer.Show(dfuInfo)
-                    if firmwareVariant == 1:
+                    if state.firmware_variant == 1:
                         firmwareDesc.SetLabelText("Auracast\u2122 " + _("Receiver"))
                         versionPanelSizer.Show(firmwareDesc)
-                    elif firmwareVariant == 2:
+                    elif state.firmware_variant == 2:
                         firmwareDesc.SetLabelText("A2DP - Auracast\u2122 " + _("Relay"))
                         versionPanelSizer.Show(firmwareDesc)
                     versionPanelSizer.Layout()
@@ -740,20 +720,18 @@ class FlooSmDelegate(FlooStateMachineDelegate):
         enable_settings_widgets(flag)
 
     def audioModeInd(self, mode: int):
-        global audioMode
-        global hwWithAnalogInput
-        hwWithAnalogInput = 1 if (mode & 0x80) == 0x80 else 0
-        audioMode = mode & 0x03
-        if firmwareVariant != 0:
+        state.hw_with_analog_input = 1 if (mode & 0x80) == 0x80 else 0
+        state.audio_mode = mode & 0x03
+        if state.firmware_variant != 0:
             pairedDevicesSb.Enable(True)
         else:
-            if audioMode == 0:
+            if state.audio_mode == 0:
                 audioModeHighQualityRadioButton.SetValue(True)
                 leBroadcastSb.Disable()
-            elif audioMode == 1:
+            elif state.audio_mode == 1:
                 audioModeGamingRadioButton.SetValue(True)
                 leBroadcastSb.Disable()
-            elif audioMode == 2:
+            elif state.audio_mode == 2:
                 audioModeBroadcastRadioButton.SetValue(True)
                 leBroadcastSb.Enable()
             audio_mode_sel_set(mode)
