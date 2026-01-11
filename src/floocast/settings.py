@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class FlooSettings:
@@ -32,7 +35,8 @@ class FlooSettings:
                 self._data = json.loads(self.path.read_text(encoding="utf-8"))
                 if not isinstance(self._data, dict):
                     self._data = {}
-            except Exception:
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning("Failed to load settings from %s: %s", self.path, e)
                 self._data = {}
 
     def save(self) -> None:
@@ -42,10 +46,11 @@ class FlooSettings:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, ensure_ascii=False)
             os.replace(tmp_path, self.path)
-        except Exception:
+        except OSError as e:
+            logger.exception("Failed to save settings to %s: %s", self.path, e)
             try:
                 os.remove(tmp_path)
-            except Exception:
+            except OSError:
                 pass
             raise
 

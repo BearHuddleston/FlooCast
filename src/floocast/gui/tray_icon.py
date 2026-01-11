@@ -1,10 +1,13 @@
 """System tray icon using pystray for GNOME AppIndicator support."""
 
+import logging
 import os
 
 import pystray
 import wx
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 class FlooCastTrayIcon:
@@ -40,7 +43,7 @@ class FlooCastTrayIcon:
             self.frame.Iconize(False)
         try:
             self.frame.Restore()
-        except Exception:
+        except (AttributeError, RuntimeError):
             pass
         self.frame.Raise()
         child = self.frame.FindFocus() or self.frame.FindWindowById(wx.ID_ANY)
@@ -49,10 +52,10 @@ class FlooCastTrayIcon:
             try:
                 flag = getattr(wx, "USER_ATTENTION_INFO", 0)
                 self.frame.RequestUserAttention(flag)
-            except Exception:
+            except (AttributeError, RuntimeError):
                 try:
                     self.frame.RequestUserAttention()
-                except Exception:
+                except (AttributeError, RuntimeError):
                     pass
 
     def _on_show(self, icon=None, item=None):

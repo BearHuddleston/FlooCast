@@ -178,11 +178,11 @@ class FlooAuxInput:
             if self._stream:
                 try:
                     self._stream.stop()
-                except Exception:
+                except sd.PortAudioError:
                     pass
                 try:
                     self._stream.close()
-                except Exception:
+                except sd.PortAudioError:
                     pass
         finally:
             self._stream = None
@@ -410,7 +410,7 @@ class FlooAuxInput:
             rout = int(sd.query_devices(out_idx)["default_samplerate"])
             if rin == rout:
                 candidates.append(rin)
-        except Exception:
+        except (sd.PortAudioError, KeyError, TypeError):
             pass
         for r in (self.TARGET_RATE, self.FALLBACK_RATE):
             if r not in candidates:
@@ -421,12 +421,12 @@ class FlooAuxInput:
             try:
                 sd.check_input_settings(device=in_idx, samplerate=r, channels=ch_in, dtype=dtype)
                 ok_in = True
-            except Exception:
+            except sd.PortAudioError:
                 ok_in = False
             try:
                 sd.check_output_settings(device=out_idx, samplerate=r, channels=ch_out, dtype=dtype)
                 ok_out = True
-            except Exception:
+            except sd.PortAudioError:
                 ok_out = False
             logger.debug("Rate check %d Hz: IN=%s OUT=%s", r, ok_in, ok_out)
             if ok_in and ok_out:
