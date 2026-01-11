@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import RLock, Thread
 
 from floocast.protocol.interface import FlooInterface
 from floocast.protocol.interface_delegate import FlooInterfaceDelegate
@@ -69,6 +69,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def __init__(self, delegate):
         super().__init__()
+        self._lock = RLock()
         self.state = FlooStateMachine.INIT
         self.lastCmd = None
         self.delegate = delegate
@@ -328,117 +329,129 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 )
 
     def setAudioMode(self, mode: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdSetAudioMode = FlooMsgAm(True, mode)
-            self.pendingCmdPara = mode
-            self.lastCmd = cmdSetAudioMode
-            self.inf.sendMsg(cmdSetAudioMode)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdSetAudioMode = FlooMsgAm(True, mode)
+                self.pendingCmdPara = mode
+                self.lastCmd = cmdSetAudioMode
+                self.inf.sendMsg(cmdSetAudioMode)
 
     def setPreferLea(self, enable: bool):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdPreferLea = FlooMsgLf(True, 1 if enable else 0)
-            self.pendingCmdPara = enable
-            self.lastCmd = cmdPreferLea
-            self.inf.sendMsg(cmdPreferLea)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdPreferLea = FlooMsgLf(True, 1 if enable else 0)
+                self.pendingCmdPara = enable
+                self.lastCmd = cmdPreferLea
+                self.inf.sendMsg(cmdPreferLea)
 
     def setPublicBroadcast(self, enable: bool):
-        bit = BroadcastModeBit.PUBLIC
-        oldValue = self.broadcastMode & bit != 0
-        if oldValue != enable:
-            print("setPublicBroadcast")
-            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
-                bit if enable else 0
-            )
-            cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
-            self.lastCmd = cmdSetBroadcastMode
-            self.inf.sendMsg(cmdSetBroadcastMode)
+        with self._lock:
+            bit = BroadcastModeBit.PUBLIC
+            oldValue = self.broadcastMode & bit != 0
+            if oldValue != enable:
+                print("setPublicBroadcast")
+                self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                    bit if enable else 0
+                )
+                cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
+                self.lastCmd = cmdSetBroadcastMode
+                self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastHighQuality(self, enable: bool):
-        bit = BroadcastModeBit.HIGH_QUALITY
-        oldValue = self.broadcastMode & bit != 0
-        if oldValue != enable:
-            print("setBroadcastHighQuality")
-            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
-                bit if enable else 0
-            )
-            cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
-            self.lastCmd = cmdSetBroadcastMode
-            self.inf.sendMsg(cmdSetBroadcastMode)
+        with self._lock:
+            bit = BroadcastModeBit.HIGH_QUALITY
+            oldValue = self.broadcastMode & bit != 0
+            if oldValue != enable:
+                print("setBroadcastHighQuality")
+                self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                    bit if enable else 0
+                )
+                cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
+                self.lastCmd = cmdSetBroadcastMode
+                self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastEncrypt(self, enable: bool):
-        bit = BroadcastModeBit.ENCRYPT
-        oldValue = self.broadcastMode & bit != 0
-        if oldValue != enable:
-            print("setBroadcastEncrypt old: %d, new %d" % (oldValue, enable))
-            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
-                bit if enable else 0
-            )
-            cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
-            self.lastCmd = cmdSetBroadcastMode
-            self.inf.sendMsg(cmdSetBroadcastMode)
+        with self._lock:
+            bit = BroadcastModeBit.ENCRYPT
+            oldValue = self.broadcastMode & bit != 0
+            if oldValue != enable:
+                print("setBroadcastEncrypt old: %d, new %d" % (oldValue, enable))
+                self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                    bit if enable else 0
+                )
+                cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
+                self.lastCmd = cmdSetBroadcastMode
+                self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastStopOnIdle(self, enable: bool):
-        bit = BroadcastModeBit.STOP_ON_IDLE
-        oldValue = self.broadcastMode & bit != 0
-        if oldValue != enable:
-            print("setBroadcastStopOnIdle old: %d, new %d" % (oldValue, enable))
-            self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
-                bit if enable else 0
-            )
-            cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
-            self.lastCmd = cmdSetBroadcastMode
-            self.inf.sendMsg(cmdSetBroadcastMode)
+        with self._lock:
+            bit = BroadcastModeBit.STOP_ON_IDLE
+            oldValue = self.broadcastMode & bit != 0
+            if oldValue != enable:
+                print("setBroadcastStopOnIdle old: %d, new %d" % (oldValue, enable))
+                self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
+                    bit if enable else 0
+                )
+                cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
+                self.lastCmd = cmdSetBroadcastMode
+                self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastLatency(self, mode: int):
-        oldValue = (
-            self.broadcastMode & BroadcastModeBit.LATENCY_MASK
-        ) >> BroadcastModeBit.LATENCY_SHIFT
-        if oldValue != mode:
-            print("setBroadcastLatency old: %d, new %d" % (oldValue, mode))
-            self.pendingCmdPara = (self.broadcastMode & BroadcastModeBit.FLAGS_MASK) | (
-                mode << BroadcastModeBit.LATENCY_SHIFT
-            )
-            cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
-            self.lastCmd = cmdSetBroadcastMode
-            self.inf.sendMsg(cmdSetBroadcastMode)
+        with self._lock:
+            oldValue = (
+                self.broadcastMode & BroadcastModeBit.LATENCY_MASK
+            ) >> BroadcastModeBit.LATENCY_SHIFT
+            if oldValue != mode:
+                print("setBroadcastLatency old: %d, new %d" % (oldValue, mode))
+                self.pendingCmdPara = (self.broadcastMode & BroadcastModeBit.FLAGS_MASK) | (
+                    mode << BroadcastModeBit.LATENCY_SHIFT
+                )
+                cmdSetBroadcastMode = FlooMsgBm(True, self.pendingCmdPara)
+                self.lastCmd = cmdSetBroadcastMode
+                self.inf.sendMsg(cmdSetBroadcastMode)
 
     def setBroadcastName(self, name: str):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdSetBroadcastName = FlooMsgBn(True, name)
-            self.pendingCmdPara = name
-            self.lastCmd = cmdSetBroadcastName
-            self.inf.sendMsg(cmdSetBroadcastName)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdSetBroadcastName = FlooMsgBn(True, name)
+                self.pendingCmdPara = name
+                self.lastCmd = cmdSetBroadcastName
+                self.inf.sendMsg(cmdSetBroadcastName)
 
     def setBroadcastKey(self, key: str):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdSetBroadcastKey = FlooMsgBe(True, key)
-            self.pendingCmdPara = key
-            self.lastCmd = cmdSetBroadcastKey
-            self.inf.sendMsg(cmdSetBroadcastKey)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdSetBroadcastKey = FlooMsgBe(True, key)
+                self.pendingCmdPara = key
+                self.lastCmd = cmdSetBroadcastKey
+                self.inf.sendMsg(cmdSetBroadcastKey)
 
     def setNewPairing(self):
-        if self.state == FlooStateMachine.CONNECTED:
-            if self.a2dpSink:
-                cmdSetDiscoverable = FlooMsgMd(True, 1)
-                self.pendingCmdPara = 1
-                self.lastCmd = cmdSetDiscoverable
-                self.inf.sendMsg(cmdSetDiscoverable)
-            else:
-                cmdStartNewPairing = FlooMsgIq()
-                self.lastCmd = cmdStartNewPairing
-                self.inf.sendMsg(cmdStartNewPairing)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                if self.a2dpSink:
+                    cmdSetDiscoverable = FlooMsgMd(True, 1)
+                    self.pendingCmdPara = 1
+                    self.lastCmd = cmdSetDiscoverable
+                    self.inf.sendMsg(cmdSetDiscoverable)
+                else:
+                    cmdStartNewPairing = FlooMsgIq()
+                    self.lastCmd = cmdStartNewPairing
+                    self.inf.sendMsg(cmdStartNewPairing)
 
     def clearAllPairedDevices(self):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdClearAllPairedDevices = FlooMsgCp()
-            self.lastCmd = cmdClearAllPairedDevices
-            self.inf.sendMsg(cmdClearAllPairedDevices)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdClearAllPairedDevices = FlooMsgCp()
+                self.lastCmd = cmdClearAllPairedDevices
+                self.inf.sendMsg(cmdClearAllPairedDevices)
 
     def clearIndexedDevice(self, index: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdClearIndexedDevice = FlooMsgCp(index)
-            self.lastCmd = cmdClearIndexedDevice
-            self.inf.sendMsg(cmdClearIndexedDevice)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdClearIndexedDevice = FlooMsgCp(index)
+                self.lastCmd = cmdClearIndexedDevice
+                self.inf.sendMsg(cmdClearIndexedDevice)
 
     def _attemptAutoReconnect(self):
         prevState = self._sourceStateBeforeDisconnect
@@ -515,44 +528,50 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self._scheduleReconnect()
 
     def getRecentlyUsedDevices(self):
-        if self.state == FlooStateMachine.CONNECTED:
-            self.pairedDevices.clear()
-            cmdGetDeviceName = FlooMsgFn(True)
-            self.lastCmd = cmdGetDeviceName
-            self.inf.sendMsg(cmdGetDeviceName)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                self.pairedDevices.clear()
+                cmdGetDeviceName = FlooMsgFn(True)
+                self.lastCmd = cmdGetDeviceName
+                self.inf.sendMsg(cmdGetDeviceName)
 
     def toggleConnection(self, index: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            cmdToggleConnection = FlooMsgTc(index)
-            self.lastCmd = cmdToggleConnection
-            self.inf.sendMsg(cmdToggleConnection)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                cmdToggleConnection = FlooMsgTc(index)
+                self.lastCmd = cmdToggleConnection
+                self.inf.sendMsg(cmdToggleConnection)
 
     def enableLed(self, onOff: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            feature = (self.feature & 0x0E) + onOff
-            cmdLedOnOff = FlooMsgFt(True, feature)
-            self.pendingCmdPara = feature
-            self.lastCmd = cmdLedOnOff
-            self.inf.sendMsg(cmdLedOnOff)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                feature = (self.feature & 0x0E) + onOff
+                cmdLedOnOff = FlooMsgFt(True, feature)
+                self.pendingCmdPara = feature
+                self.lastCmd = cmdLedOnOff
+                self.inf.sendMsg(cmdLedOnOff)
 
     def enableAptxLossless(self, onOff: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            feature = (self.feature & 0x0D) + (0x02 if onOff else 0x00)
-            cmdLosslessOnOff = FlooMsgFt(True, feature)
-            self.lastCmd = cmdLosslessOnOff
-            self.inf.sendMsg(cmdLosslessOnOff)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                feature = (self.feature & 0x0D) + (0x02 if onOff else 0x00)
+                cmdLosslessOnOff = FlooMsgFt(True, feature)
+                self.lastCmd = cmdLosslessOnOff
+                self.inf.sendMsg(cmdLosslessOnOff)
 
     def enableGattClient(self, onOff: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            feature = (self.feature & 0x0B) + (0x04 if onOff else 0x00)
-            cmdGattClientOnOff = FlooMsgFt(True, feature)
-            self.lastCmd = cmdGattClientOnOff
-            self.inf.sendMsg(cmdGattClientOnOff)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                feature = (self.feature & 0x0B) + (0x04 if onOff else 0x00)
+                cmdGattClientOnOff = FlooMsgFt(True, feature)
+                self.lastCmd = cmdGattClientOnOff
+                self.inf.sendMsg(cmdGattClientOnOff)
 
     def enableUsbInput(self, onOff: int):
-        if self.state == FlooStateMachine.CONNECTED:
-            feature = (self.feature & 0x07) + (0x08 if onOff else 0x00)
-            cmdLedOnOff = FlooMsgFt(True, feature)
-            self.pendingCmdPara = feature
-            self.lastCmd = cmdLedOnOff
-            self.inf.sendMsg(cmdLedOnOff)
+        with self._lock:
+            if self.state == FlooStateMachine.CONNECTED:
+                feature = (self.feature & 0x07) + (0x08 if onOff else 0x00)
+                cmdLedOnOff = FlooMsgFt(True, feature)
+                self.pendingCmdPara = feature
+                self.lastCmd = cmdLedOnOff
+                self.inf.sendMsg(cmdLedOnOff)
