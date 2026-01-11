@@ -11,6 +11,7 @@ import wx
 
 from floocast.audio.aux_input import FlooAuxInput
 from floocast.dfu_thread import FlooDfuThread
+from floocast.gui.codec_formatter import CodecDisplayFormatter
 from floocast.gui.constants import (
     APP_GIF,
     APP_ICON,
@@ -55,6 +56,7 @@ _ = translate.gettext
 
 sourceStateStr = get_source_state_strings(_)
 leaStateStr = get_lea_state_strings(_)
+codecFormatter = CodecDisplayFormatter(codecStr, _)
 
 # create root window
 app = wx.App(False)
@@ -991,126 +993,10 @@ class FlooSmDelegate(FlooStateMachineDelegate):
     def audioCodecInUseInd(
         self, codec, rssi, rate, spkSampleRate, micSampleRate, sduInt, transportDelay, presentDelay
     ):
-        codecInUseText.SetLabelText(codecStr[codec] if codec < len(codecStr) else _("Unknown"))
-        if transportDelay != 0:
-            if (codec == 6 or codec == 10) and rssi != 0:
-                if spkSampleRate == 0:
-                    codecInUseText.SetLabelText(
-                        codecStr[codec]
-                        + " @ "
-                        + str(rate)
-                        + "Kbps "
-                        + str(float(transportDelay) / 100)
-                        + "ms, "
-                        + _("RSSI")
-                        + " -"
-                        + str(0x100 - rssi)
-                        + "dBm"
-                    )
-                else:
-                    codecInUseText.SetLabelText(
-                        codecStr[codec]
-                        + " @ "
-                        + str(float(spkSampleRate / 1000))
-                        + "kHz "
-                        + str(rate)
-                        + "Kbps "
-                        + str(float(transportDelay) / 100)
-                        + "ms, "
-                        + _("RSSI")
-                        + " -"
-                        + str(0x100 - rssi)
-                        + "dBm"
-                    )
-            elif presentDelay != 0:
-                if micSampleRate != 0:
-                    codecInUseText.SetLabelText(
-                        codecStr[codec]
-                        + " @ "
-                        + str(float(spkSampleRate / 1000))
-                        + "|"
-                        + str(float(micSampleRate / 1000))
-                        + "kHz "
-                        + str(float(sduInt) / 100)
-                        + "+"
-                        + str(float(transportDelay) / 100)
-                        + "+"
-                        + str(float(presentDelay) / 100)
-                        + "ms"
-                        if codec < len(codecStr)
-                        else _("Unknown")
-                    )
-                else:
-                    codecInUseText.SetLabelText(
-                        codecStr[codec]
-                        + " @ "
-                        + str(float(spkSampleRate / 1000))
-                        + "kHz "
-                        + str(float(sduInt) / 100)
-                        + "+"
-                        + str(float(transportDelay) / 100)
-                        + "+"
-                        + str(float(presentDelay) / 100)
-                        + "ms"
-                        if codec < len(codecStr)
-                        else _("Unknown")
-                    )
-            else:
-                codecInUseText.SetLabelText(
-                    (codecStr[codec] + " @ " + str(float(spkSampleRate / 1000)) + "kHz ")
-                    + str(float(transportDelay) / 100)
-                    + "ms"
-                )
-        elif (codec == 6 or codec == 10) and rssi != 0:
-            if spkSampleRate == 0:
-                codecInUseText.SetLabelText(
-                    codecStr[codec]
-                    + " @ "
-                    + str(rate)
-                    + "Kbps "
-                    + _("RSSI")
-                    + " -"
-                    + str(0x100 - rssi)
-                    + "dBm"
-                )
-            else:
-                codecInUseText.SetLabelText(
-                    codecStr[codec]
-                    + " @ "
-                    + str(float(spkSampleRate / 1000))
-                    + "kHz "
-                    + str(rate)
-                    + "Kbps "
-                    + _("RSSI")
-                    + " -"
-                    + str(0x100 - rssi)
-                    + "dBm"
-                )
-        elif spkSampleRate != 0 and micSampleRate != 0:
-            codecInUseText.SetLabelText(
-                (
-                    codecStr[codec]
-                    + " @ "
-                    + str(float(spkSampleRate / 1000))
-                    + "|"
-                    + str(float(micSampleRate / 1000))
-                    + "KHz"
-                )
-                if codec < len(codecStr)
-                else _("Unknown")
-            )
-        elif spkSampleRate != 0:
-            codecInUseText.SetLabelText(
-                (codecStr[codec] + " @ " + str(float(spkSampleRate / 1000)) + "KHz")
-                if codec < len(codecStr)
-                else _("Unknown")
-            )
-        elif micSampleRate != 0:
-            codecInUseText.SetLabelText(
-                (codecStr[codec] + " @ 0| " + str(float(micSampleRate / 1000)) + "KHz")
-                if codec < len(codecStr)
-                else _("Unknown")
-            )
+        label = codecFormatter.format(
+            codec, rssi, rate, spkSampleRate, micSampleRate, sduInt, transportDelay, presentDelay
+        )
+        codecInUseText.SetLabelText(label)
         codecInUseSbSizer.Layout()
 
     def ledEnabledInd(self, enabled):

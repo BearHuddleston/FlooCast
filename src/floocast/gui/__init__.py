@@ -1,5 +1,6 @@
 """GUI components for FlooCast."""
 
+from floocast.gui.codec_formatter import CodecDisplayFormatter
 from floocast.gui.constants import (
     APP_GIF,
     APP_ICON,
@@ -20,6 +21,7 @@ __all__ = [
     "APP_LOGO_PNG",
     "APP_TITLE",
     "CODEC_STRINGS",
+    "CodecDisplayFormatter",
     "MAIN_WINDOW_HEIGHT",
     "MAIN_WINDOW_WIDTH",
     "FlooCastTrayIcon",
