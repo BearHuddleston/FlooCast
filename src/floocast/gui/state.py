@@ -23,14 +23,16 @@ class GuiState:
     gatt_client_enable: bool = False
 
     dfu_undergoing: bool = False
-    firmware_version: str | None = None
-    firmware_variant: str | None = None
-    first_batch: bool = True
+    firmware_version: str = ""
+    firmware_variant: int = 0
+    first_batch: str = ""
+    hw_with_analog_input: int = 0
 
     paired_devices: list = field(default_factory=list)
 
     looper: Any = None
     input_devices: list = field(default_factory=list)
-    saved_device: str | None = None
-    saved_name: str | None = None
+    name_input_devices: dict = field(default_factory=dict)
+    saved_device: dict | None = None
+    saved_name: str = "None"
     saved_blocksize: int | None = None
