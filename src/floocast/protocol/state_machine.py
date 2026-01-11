@@ -1,4 +1,4 @@
-from threading import *
+from threading import Thread
 
 from floocast.protocol.interface import FlooInterface
 from floocast.protocol.interface_delegate import FlooInterfaceDelegate
