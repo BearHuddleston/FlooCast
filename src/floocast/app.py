@@ -31,6 +31,7 @@ from floocast.gui.panels import (
     VersionPanel,
     WindowPanel,
 )
+from floocast.gui.toggle_switch import ToggleSwitchController
 from floocast.gui.tray_icon import FlooCastTrayIcon
 from floocast.protocol.state_machine import FlooStateMachine
 from floocast.protocol.state_machine_delegate import FlooStateMachineDelegate
@@ -167,40 +168,20 @@ def audio_mode_sel(event):
 
 audioModeUpperPanel.Bind(wx.EVT_RADIOBUTTON, audio_mode_sel)
 
-preferLeaEnable = None
-
-
-def prefer_lea_enable_switch_set(enable, isNotify):
-    global preferLeaEnable
-    preferLeaEnable = enable
-    preferLeButton.SetBitmap(on if preferLeaEnable else off)
-    preferLeButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("Prefer using LE audio for dual-mode devices")
-        + " "
-        + (_("On") if preferLeaEnable else _("Off"))
-    )
-    if isNotify:
-        preferLeaCheckBox.SetValue(enable)
-    else:
-        flooSm.setPreferLea(enable)
-    newPairingButton.Enable(
-        False if preferLeaEnable and pairedDeviceListbox.GetCount() > 0 else True
-    )
-
-
-def prefer_lea_enable_button(event):
-    preferLeaCheckBox.SetValue(not preferLeaEnable)
-    prefer_lea_enable_switch_set(not preferLeaEnable, False)
-
-
-def prefer_lea_enable_switch(event):
-    prefer_lea_enable_switch_set(not preferLeaEnable, False)
-
-
-audioModeLowerPanel.Bind(wx.EVT_CHECKBOX, prefer_lea_enable_switch, preferLeaCheckBox)
-preferLeButton.Bind(wx.EVT_BUTTON, prefer_lea_enable_button)
+preferLeaToggle = ToggleSwitchController(
+    preferLeButton,
+    preferLeaCheckBox,
+    on,
+    off,
+    _,
+    _("Prefer using LE audio for dual-mode devices"),
+    lambda enable: flooSm.setPreferLea(enable),
+    extra_action=lambda enable: newPairingButton.Enable(
+        not (enable and pairedDeviceListbox.GetCount() > 0)
+    ),
+)
+audioModeLowerPanel.Bind(wx.EVT_CHECKBOX, preferLeaToggle.on_checkbox_click, preferLeaCheckBox)
+preferLeButton.Bind(wx.EVT_BUTTON, preferLeaToggle.on_button_click)
 
 
 # Window panel
@@ -310,147 +291,61 @@ leBroadcastAuxInputPanelSizer = broadcastPanel.aux_input_panel_sizer
 auxInputLabel = broadcastPanel.aux_input_label
 auxInputComboBox = broadcastPanel.aux_input_combo
 
-publicBroadcastEnable = None
-
-
-def public_broadcast_enable_switch_set(enable, isNotify):
-    global publicBroadcastEnable
-    publicBroadcastEnable = enable
-    publicBroadcastButton.SetBitmap(on if publicBroadcastEnable else off)
-    publicBroadcastButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("Public broadcast")
-        + " "
-        + (_("On") if publicBroadcastEnable else _("Off"))
-    )
-    if isNotify:
-        publicBroadcastCheckBox.SetValue(enable)
-    else:
-        flooSm.setPublicBroadcast(enable)
-
-
-def public_broadcast_enable_button(event):
-    publicBroadcastCheckBox.SetValue(not publicBroadcastEnable)
-    public_broadcast_enable_switch_set(not publicBroadcastEnable, False)
-
-
-# Broadcast enable switch function
-def public_broadcast_enable_switch(event):
-    public_broadcast_enable_switch_set(not publicBroadcastEnable, False)
-
-
-leBroadcastSwitchPanel.Bind(
-    wx.EVT_CHECKBOX, public_broadcast_enable_switch, publicBroadcastCheckBox
+publicBroadcastToggle = ToggleSwitchController(
+    publicBroadcastButton,
+    publicBroadcastCheckBox,
+    on,
+    off,
+    _,
+    _("Public broadcast"),
+    lambda enable: flooSm.setPublicBroadcast(enable),
 )
-publicBroadcastButton.Bind(wx.EVT_BUTTON, public_broadcast_enable_button)
-
-broadcastHighQualityEnable = None
-
-
-def broadcast_high_quality_switch_set(enable, isNotify):
-    global broadcastHighQualityEnable
-    broadcastHighQualityEnable = enable
-    broadcastHighQualityButton.SetBitmap(on if broadcastHighQualityEnable else off)
-    publicBroadcastButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("Broadcast high-quality music, otherwise, voice")
-        + " "
-        + (_("On") if broadcastHighQualityEnable else _("Off"))
-    )
-    if isNotify:
-        broadcastHighQualityCheckBox.SetValue(enable)
-    else:
-        flooSm.setBroadcastHighQuality(enable)
-
-
-def broadcast_high_quality_enable_button(event):
-    broadcastHighQualityCheckBox.SetValue(not broadcastHighQualityEnable)
-    broadcast_high_quality_switch_set(not broadcastHighQualityEnable, False)
-
-
-# Broadcast high quality enable switch function
-def broadcast_high_quality_enable_switch(event):
-    broadcast_high_quality_switch_set(not broadcastHighQualityEnable, False)
-
-
 leBroadcastSwitchPanel.Bind(
-    wx.EVT_CHECKBOX, broadcast_high_quality_enable_switch, broadcastHighQualityCheckBox
+    wx.EVT_CHECKBOX, publicBroadcastToggle.on_checkbox_click, publicBroadcastCheckBox
 )
-broadcastHighQualityButton.Bind(wx.EVT_BUTTON, broadcast_high_quality_enable_button)
+publicBroadcastButton.Bind(wx.EVT_BUTTON, publicBroadcastToggle.on_button_click)
 
-broadcastEncryptEnable = None
-
-
-def broadcast_encrypt_switch_set(enable, isNotify):
-    global broadcastEncryptEnable
-    broadcastEncryptEnable = enable
-    broadcastEncryptButton.SetBitmap(on if broadcastEncryptEnable else off)
-    broadcastEncryptButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("Encrypt broadcast; please set a key first")
-        + " "
-        + (_("On") if broadcastEncryptEnable else _("Off"))
-    )
-    if isNotify:
-        broadcastEncryptCheckBox.SetValue(enable)
-    else:
-        flooSm.setBroadcastEncrypt(enable)
-
-
-# Broadcast encrypt enable button function
-def broadcast_encrypt_enable_button(event):
-    broadcastEncryptCheckBox.SetValue(not broadcastEncryptEnable)
-    broadcast_encrypt_switch_set(not broadcastEncryptEnable, False)
-
-
-# Broadcast encrypt enable switch function
-def broadcast_encrypt_enable_switch(event):
-    broadcast_encrypt_switch_set(not broadcastEncryptEnable, False)
-
-
+broadcastHighQualityToggle = ToggleSwitchController(
+    broadcastHighQualityButton,
+    broadcastHighQualityCheckBox,
+    on,
+    off,
+    _,
+    _("Broadcast high-quality music, otherwise, voice"),
+    lambda enable: flooSm.setBroadcastHighQuality(enable),
+)
 leBroadcastSwitchPanel.Bind(
-    wx.EVT_CHECKBOX, broadcast_encrypt_enable_switch, broadcastEncryptCheckBox
+    wx.EVT_CHECKBOX, broadcastHighQualityToggle.on_checkbox_click, broadcastHighQualityCheckBox
 )
-broadcastEncryptButton.Bind(wx.EVT_BUTTON, broadcast_encrypt_enable_button)
+broadcastHighQualityButton.Bind(wx.EVT_BUTTON, broadcastHighQualityToggle.on_button_click)
 
-broadcastStopOnIdleEnable = None
-
-
-def broadcast_stop_on_idle_switch_set(enable, isNotify):
-    global broadcastStopOnIdleEnable
-    broadcastStopOnIdleEnable = enable
-    broadcastStopOnIdleButton.SetBitmap(on if broadcastStopOnIdleEnable else off)
-    broadcastStopOnIdleButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("Stop broadcasting immediately when USB audio playback ends")
-        + " "
-        + (_("On") if broadcastStopOnIdleEnable else _("Off"))
-    )
-    if isNotify:
-        broadcastStopOnIdleCheckBox.SetValue(enable)
-    else:
-        flooSm.setBroadcastStopOnIdle(enable)
-
-
-# Broadcast stops when USB idle enable button function
-def broadcast_stop_on_idle_enable_button(event):
-    broadcastStopOnIdleCheckBox.SetValue(not broadcastStopOnIdleEnable)
-    broadcast_stop_on_idle_switch_set(not broadcastStopOnIdleEnable, False)
-
-
-# BBroadcast stops when USB idle enable switch function
-def broadcast_stop_on_idle_enable_switch(event):
-    broadcast_stop_on_idle_switch_set(not broadcastStopOnIdleEnable, False)
-
-
+broadcastEncryptToggle = ToggleSwitchController(
+    broadcastEncryptButton,
+    broadcastEncryptCheckBox,
+    on,
+    off,
+    _,
+    _("Encrypt broadcast; please set a key first"),
+    lambda enable: flooSm.setBroadcastEncrypt(enable),
+)
 leBroadcastSwitchPanel.Bind(
-    wx.EVT_CHECKBOX, broadcast_stop_on_idle_enable_switch, broadcastStopOnIdleCheckBox
+    wx.EVT_CHECKBOX, broadcastEncryptToggle.on_checkbox_click, broadcastEncryptCheckBox
 )
-broadcastStopOnIdleButton.Bind(wx.EVT_BUTTON, broadcast_stop_on_idle_enable_button)
+broadcastEncryptButton.Bind(wx.EVT_BUTTON, broadcastEncryptToggle.on_button_click)
+
+broadcastStopOnIdleToggle = ToggleSwitchController(
+    broadcastStopOnIdleButton,
+    broadcastStopOnIdleCheckBox,
+    on,
+    off,
+    _,
+    _("Stop broadcasting immediately when USB audio playback ends"),
+    lambda enable: flooSm.setBroadcastStopOnIdle(enable),
+)
+leBroadcastSwitchPanel.Bind(
+    wx.EVT_CHECKBOX, broadcastStopOnIdleToggle.on_checkbox_click, broadcastStopOnIdleCheckBox
+)
+broadcastStopOnIdleButton.Bind(wx.EVT_BUTTON, broadcastStopOnIdleToggle.on_button_click)
 
 
 # Broadcast name entry function
@@ -606,137 +501,55 @@ dfuInfo = versionPanelObj.dfu_info
 newFirmwareUrl = versionPanelObj.new_firmware_url
 firmwareDesc = versionPanelObj.firmware_desc
 
-usbInputEnable = None
+usbInputToggle = ToggleSwitchController(
+    usbInputEnableButton,
+    usbInputCheckBox,
+    on,
+    off,
+    _,
+    _("USB Audio Input"),
+    lambda enable: flooSm.enableUsbInput(enable),
+)
+settingsPanel.Bind(wx.EVT_CHECKBOX, usbInputToggle.on_checkbox_click, usbInputCheckBox)
+usbInputEnableButton.Bind(wx.EVT_BUTTON, usbInputToggle.on_button_click)
 
+ledToggle = ToggleSwitchController(
+    ledEnableButton,
+    ledCheckBox,
+    on,
+    off,
+    _,
+    _("LED"),
+    lambda enable: flooSm.enableLed(enable),
+)
+settingsPanel.Bind(wx.EVT_CHECKBOX, ledToggle.on_checkbox_click, ledCheckBox)
+ledEnableButton.Bind(wx.EVT_BUTTON, ledToggle.on_button_click)
 
-def usb_input_enable_switch_set(enable, isNotify):
-    global usbInputEnable
-    usbInputEnable = enable
-    usbInputEnableButton.SetBitmap(on if usbInputEnable else off)
-    usbInputEnableButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("USB Audio Input")
-        + " "
-        + (_("On") if usbInputEnable else _("Off"))
-    )
-    if isNotify:
-        usbInputCheckBox.SetValue(enable)
-    else:
-        flooSm.enableUsbInput(enable)
+aptxLosslessToggle = ToggleSwitchController(
+    aptxLosslessEnableButton,
+    aptxLosslessCheckBox,
+    on,
+    off,
+    _,
+    _("aptX Lossless"),
+    lambda enable: flooSm.enableAptxLossless(enable),
+)
+settingsPanel.Bind(wx.EVT_CHECKBOX, aptxLosslessToggle.on_checkbox_click, aptxLosslessCheckBox)
+aptxLosslessEnableButton.Bind(wx.EVT_BUTTON, aptxLosslessToggle.on_button_click)
 
-
-# usb input enable button function
-def usb_input_enable_button(event):
-    usbInputCheckBox.SetValue(not usbInputEnable)
-    usb_input_enable_switch_set(not usbInputEnable, False)
-
-
-# usb input enable switch function
-def usb_input_enable_switch(event):
-    usb_input_enable_switch_set(not usbInputEnable, False)
-
-
-settingsPanel.Bind(wx.EVT_CHECKBOX, usb_input_enable_switch, usbInputCheckBox)
-usbInputEnableButton.Bind(wx.EVT_BUTTON, usb_input_enable_button)
-
-ledEnable = None
-
-
-def led_enable_switch_set(enable, isNotify):
-    global ledEnable
-    ledEnable = enable
-    ledEnableButton.SetBitmap(on if ledEnable else off)
-    ledEnableButton.SetToolTip(
-        _("Toggle switch for") + " " + _("LED") + " " + (_("On") if ledEnable else _("Off"))
-    )
-    if isNotify:
-        ledCheckBox.SetValue(enable)
-    else:
-        flooSm.enableLed(enable)
-
-
-# led enable button function
-def led_enable_button(event):
-    ledCheckBox.SetValue(not ledEnable)
-    led_enable_switch_set(not ledEnable, False)
-
-
-# led enable switch function
-def led_enable_switch(event):
-    led_enable_switch_set(not ledEnable, False)
-
-
-settingsPanel.Bind(wx.EVT_CHECKBOX, led_enable_switch, ledCheckBox)
-ledEnableButton.Bind(wx.EVT_BUTTON, led_enable_button)
-
-aptxLosslessEnable = None
-
-
-def aptxLossless_enable_switch_set(enable, isNotify):
-    global aptxLosslessEnable
-    aptxLosslessEnable = enable
-    aptxLosslessEnableButton.SetBitmap(on if aptxLosslessEnable else off)
-    aptxLosslessEnableButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + _("aptX Lossless")
-        + " "
-        + (_("On") if aptxLosslessEnable else _("Off"))
-    )
-    if isNotify:
-        aptxLosslessCheckBox.SetValue(enable)
-    else:
-        flooSm.enableAptxLossless(enable)
-
-
-def aptxLossless_enable_button(event):
-    aptxLosslessCheckBox.SetValue(not aptxLosslessEnable)
-    aptxLossless_enable_switch_set(not aptxLosslessEnable, False)
-
-
-# aptxLossless enable switch function
-def aptxLossless_enable_switch(event):
-    aptxLossless_enable_switch_set(not aptxLosslessEnable, False)
-
-
-settingsPanel.Bind(wx.EVT_CHECKBOX, aptxLossless_enable_switch, aptxLosslessCheckBox)
-aptxLosslessEnableButton.Bind(wx.EVT_BUTTON, aptxLossless_enable_button)
-
-gattClientWithBroadcastEnable = None
-
-
-def gatt_client_enable_switch_set(enable, isNotify):
-    global gattClientWithBroadcastEnable
-    gattClientWithBroadcastEnable = enable
-    gattClientWithBroadcastEnableButton.SetBitmap(on if gattClientWithBroadcastEnable else off)
-    gattClientWithBroadcastEnableButton.SetToolTip(
-        _("Toggle switch for")
-        + " "
-        + "GATT "
-        + _("Client")
-        + " "
-        + (_("On") if gattClientWithBroadcastEnable else _("Off"))
-    )
-    if isNotify:
-        gattClientWithBroadcastCheckBox.SetValue(enable)
-    else:
-        flooSm.enableGattClient(enable)
-
-
-# gatt client enable button function
-def gatt_client_enable_button(event):
-    gattClientWithBroadcastCheckBox.SetValue(not gattClientWithBroadcastEnable)
-    gatt_client_enable_switch_set(not gattClientWithBroadcastEnable, False)
-
-
-# gatt client enable switch function
-def gatt_client_enable_switch(event):
-    gatt_client_enable_switch_set(not gattClientWithBroadcastEnable, False)
-
-
-settingsPanel.Bind(wx.EVT_CHECKBOX, gatt_client_enable_switch, gattClientWithBroadcastCheckBox)
-gattClientWithBroadcastEnableButton.Bind(wx.EVT_BUTTON, gatt_client_enable_button)
+gattClientToggle = ToggleSwitchController(
+    gattClientWithBroadcastEnableButton,
+    gattClientWithBroadcastCheckBox,
+    on,
+    off,
+    _,
+    "GATT " + _("Client"),
+    lambda enable: flooSm.enableGattClient(enable),
+)
+settingsPanel.Bind(
+    wx.EVT_CHECKBOX, gattClientToggle.on_checkbox_click, gattClientWithBroadcastCheckBox
+)
+gattClientWithBroadcastEnableButton.Bind(wx.EVT_BUTTON, gattClientToggle.on_button_click)
 
 
 dfuUndergoing = False
@@ -954,13 +767,13 @@ class FlooSmDelegate(FlooStateMachineDelegate):
         leaStateSbSizer.Layout()
 
     def preferLeaInd(self, state: int):
-        prefer_lea_enable_switch_set(state == 1, True)
+        preferLeaToggle.set(state == 1, True)
 
     def broadcastModeInd(self, state: int):
-        broadcast_high_quality_switch_set(state & 4 == 4, True)
-        public_broadcast_enable_switch_set(state & 2 == 2, True)
-        broadcast_encrypt_switch_set(state & 1 == 1, True)
-        broadcast_stop_on_idle_switch_set(state & 8 == 8, True)
+        broadcastHighQualityToggle.set(state & 4 == 4, True)
+        publicBroadcastToggle.set(state & 2 == 2, True)
+        broadcastEncryptToggle.set(state & 1 == 1, True)
+        broadcastStopOnIdleToggle.set(state & 8 == 8, True)
         broadcastLatency = (state & 0x30) >> 4
         if broadcastLatency == 1:
             latencyLowestRadioButton.SetValue(True)
@@ -987,7 +800,7 @@ class FlooSmDelegate(FlooStateMachineDelegate):
             # print(pairedDevices[i])
             pairedDeviceListbox.Append(pairedDevices[i])
             i = i + 1
-        newPairingButton.Enable(False if preferLeaEnable and i > 0 else True)
+        newPairingButton.Enable(False if preferLeaToggle.enabled and i > 0 else True)
         # clearAllButton.Enable(True if i > 0 else False)
 
     def audioCodecInUseInd(
@@ -1000,16 +813,16 @@ class FlooSmDelegate(FlooStateMachineDelegate):
         codecInUseSbSizer.Layout()
 
     def ledEnabledInd(self, enabled):
-        led_enable_switch_set(enabled, True)
+        ledToggle.set(enabled, True)
 
     def aptxLosslessEnabledInd(self, enabled):
-        aptxLossless_enable_switch_set(enabled, True)
+        aptxLosslessToggle.set(enabled, True)
 
     def gattClientEnabledInd(self, enabled):
-        gatt_client_enable_switch_set(enabled, True)
+        gattClientToggle.set(enabled, True)
 
     def audioSourceInd(self, enabled):
-        usb_input_enable_switch_set(enabled, True)
+        usbInputToggle.set(enabled, True)
 
     def connectionErrorInd(self, error: str):
         if error == "port_busy":
