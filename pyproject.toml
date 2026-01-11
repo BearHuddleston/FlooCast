@@ -14,6 +14,7 @@ dependencies = [
     "urllib3",
     "pystray",
     "notify-py",
+    "wxPython>=4.2",
 ]
 
 [project.urls]
@@ -33,6 +34,7 @@ dev = [
     "ruff>=0.8",
     "pytest>=8.0",
     "pre-commit>=4.0",
+    "mypy>=1.0",
 ]
 
 [tool.ruff]
@@ -59,16 +61,18 @@ ignore = [
     "SIM102",
     "SIM105",
     "SIM211",
-    "F821",
-    "F403",
-    "F405",
-    "F811",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
 
 [build-system]
 requires = ["hatchling"]

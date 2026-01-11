@@ -14,13 +14,14 @@ from floocast.audio.aux_input import FlooAuxInput
 from floocast.dfu_thread import FlooDfuThread
 from floocast.gui.codec_formatter import CodecDisplayFormatter
 from floocast.gui.constants import (
-    APP_GIF,
     APP_ICON,
     APP_LOGO_PNG,
     APP_TITLE,
     CODEC_STRINGS,
     MAIN_WINDOW_HEIGHT,
     MAIN_WINDOW_WIDTH,
+    OFF_SWITCH,
+    ON_SWITCH,
     get_lea_state_strings,
     get_source_state_strings,
 )
@@ -42,7 +43,6 @@ from floocast.settings import FlooSettings
 logger = logging.getLogger(__name__)
 
 appIcon = APP_ICON
-appGif = APP_GIF
 appTitle = APP_TITLE
 appLogoPng = APP_LOGO_PNG
 codecStr = CODEC_STRINGS
@@ -75,7 +75,7 @@ state = GuiState(
 )
 
 appFrame = wx.Frame(None, wx.ID_ANY, "FlooCast", size=wx.Size(mainWindowWidth, mainWindowHeight))
-appFrame.SetIcon(wx.Icon(app_path + os.sep + appIcon))
+appFrame.SetIcon(wx.Icon(appIcon))
 
 statusBar = appFrame.CreateStatusBar(name=_("Status Bar"))
 statusBar.SetStatusText(_("Initializing"))
@@ -88,10 +88,8 @@ def update_status_bar(info: str):
 
 
 # Define On/Off Images
-on = wx.Bitmap(
-    app_path + os.sep + "onS.png",
-)
-off = wx.Bitmap(app_path + os.sep + "offS.png")
+on = wx.Bitmap(ON_SWITCH)
+off = wx.Bitmap(OFF_SWITCH)
 
 appPanel = wx.Panel(appFrame)
 appSizer = wx.FlexGridSizer(2, 2, vgap=2, hgap=4)
@@ -207,7 +205,7 @@ def hide_window(event):
         appFrame.Hide()
 
 
-windowIcon = FlooCastTrayIcon(appFrame, app_path + os.sep + appIcon, _)
+windowIcon = FlooCastTrayIcon(appFrame, appIcon, _)
 windowIcon.run()
 appFrame.Bind(wx.EVT_CLOSE, quit_window)
 
@@ -487,7 +485,7 @@ aptxLosslessEnableButton = settingsPanelObj.aptx_lossless_button
 gattClientWithBroadcastCheckBox = settingsPanelObj.gatt_client_checkbox
 gattClientWithBroadcastEnableButton = settingsPanelObj.gatt_client_button
 
-versionPanelObj = VersionPanel(aboutSb, app_path, appLogoPng, _)
+versionPanelObj = VersionPanel(aboutSb, appLogoPng, _)
 versionPanel = versionPanelObj.panel
 versionPanelSizer = versionPanelObj.sizer
 logoStaticBmp = versionPanelObj.logo

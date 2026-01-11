@@ -1,6 +1,8 @@
 import logging
 from threading import RLock, Thread
 
+import wx
+
 from floocast.protocol.interface import FlooInterface
 from floocast.protocol.interface_delegate import FlooInterfaceDelegate
 from floocast.protocol.messages import (
@@ -59,8 +61,6 @@ class BroadcastModeBit:
 
 
 def _wx_call_after(func, *args):
-    import wx
-
     wx.CallAfter(func, *args)
 
 

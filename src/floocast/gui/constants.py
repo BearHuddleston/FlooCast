@@ -1,9 +1,13 @@
 """GUI constants and configuration."""
 
-APP_ICON = "FlooCastApp.ico"
-APP_GIF = "FlooCastApp.gif"
+from floocast.assets import get_asset_path
+
+APP_ICON = str(get_asset_path("FlooCastApp.ico"))
+APP_GIF = str(get_asset_path("FlooCastApp.gif"))
 APP_TITLE = "FlooCast"
-APP_LOGO_PNG = "FlooCastHeader.png"
+APP_LOGO_PNG = str(get_asset_path("FlooCastHeader.png"))
+ON_SWITCH = str(get_asset_path("onS.png"))
+OFF_SWITCH = str(get_asset_path("offS.png"))
 
 MAIN_WINDOW_WIDTH = 1200
 MAIN_WINDOW_HEIGHT = 700

@@ -3,13 +3,11 @@ import wx.lib.agw.hyperlink as hl
 
 
 class VersionPanel:
-    def __init__(self, parent, app_path, app_logo_png, translate):
+    def __init__(self, parent, logo_path, translate):
         self.panel = wx.Panel(parent)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        logo_img = wx.Image(
-            app_path + wx.FileName.GetPathSeparator() + app_logo_png, wx.BITMAP_TYPE_PNG
-        )
+        logo_img = wx.Image(logo_path, wx.BITMAP_TYPE_PNG)
         logo_bitmap = logo_img.ConvertToBitmap()
         self.logo = wx.StaticBitmap(self.panel, wx.ID_ANY, logo_bitmap)
         self.logo.SetToolTip(translate("FlooGoo"))
