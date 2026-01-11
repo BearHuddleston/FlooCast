@@ -14,7 +14,6 @@ dependencies = [
     "urllib3",
     "pystray",
     "notify-py",
-    "wxPython>=4.2",
 ]
 
 [project.urls]
@@ -30,6 +29,9 @@ packages = ["src/floocast"]
 include = ["src/floocast"]
 
 [project.optional-dependencies]
+gui = [
+    "wxPython>=4.2",
+]
 dev = [
     "ruff>=0.8",
     "pytest>=8.0",

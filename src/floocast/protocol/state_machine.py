@@ -1,8 +1,6 @@
 import logging
 from threading import RLock, Thread
 
-import wx
-
 from floocast.protocol.interface import FlooInterface
 from floocast.protocol.interface_delegate import FlooInterfaceDelegate
 from floocast.protocol.messages import (
@@ -61,7 +59,15 @@ class BroadcastModeBit:
 
 
 def _wx_call_after(func, *args):
+    import wx
+
     wx.CallAfter(func, *args)
+
+
+def _wx_call_later(delay_ms, func):
+    import wx
+
+    return wx.CallLater(delay_ms, func)
 
 
 class FlooStateMachine(FlooInterfaceDelegate, Thread):
@@ -500,7 +506,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             "Auto-reconnect: scheduling attempt %d in %dms", self._reconnectAttempts + 1, delay
         )
         _wx_call_after(
-            lambda: setattr(self, "_reconnectTimer", wx.CallLater(delay, self._doReconnect))
+            lambda: setattr(self, "_reconnectTimer", _wx_call_later(delay, self._doReconnect))
         )
 
     def _doReconnect(self):
@@ -514,7 +520,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             return
         logger.debug("Auto-reconnect: attempt %d, toggling device 0", self._reconnectAttempts)
         self.toggleConnection(0)
-        _wx_call_after(lambda: wx.CallLater(3000, self._checkReconnectResult))
+        _wx_call_after(lambda: _wx_call_later(3000, self._checkReconnectResult))
 
     def _checkReconnectResult(self):
         if self.sourceState >= SourceState.STREAMING_START:
