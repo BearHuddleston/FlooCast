@@ -1,3 +1,5 @@
+import logging
+
 from floocast.protocol.messages import (
     FlooMessage,
     FlooMsgAc,
@@ -16,6 +18,8 @@ from floocast.protocol.messages import (
     FlooMsgUnknown,
     FlooMsgVr,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FlooParser:
@@ -47,7 +51,7 @@ class FlooParser:
             return None
         msgHeader = pkt[:2].decode("ascii")
         if msgHeader in FlooParser.MSG_HEADERS:
-            print("FlooParser: create a " + msgHeader + " message")
+            logger.debug("create a %s message", msgHeader)
             return FlooParser.MSG_HEADERS[msgHeader](pkt)
         else:
             return FlooMsgUnknown(False)

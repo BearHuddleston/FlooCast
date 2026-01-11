@@ -1,5 +1,6 @@
 # !/usr/bin/env python
 import gettext
+import logging
 import os
 import re
 import ssl
@@ -36,6 +37,8 @@ from floocast.gui.tray_icon import FlooCastTrayIcon
 from floocast.protocol.state_machine import FlooStateMachine
 from floocast.protocol.state_machine_delegate import FlooStateMachineDelegate
 from floocast.settings import FlooSettings
+
+logger = logging.getLogger(__name__)
 
 appIcon = APP_ICON
 appGif = APP_GIF
@@ -404,7 +407,7 @@ def input_device_on_select(event):
     # Apply runtime
     looper.set_input(saved_device)
 
-    print(f"User chose: {saved_name} -> applied and saved")
+    logger.info("User chose: %s -> applied and saved", saved_name)
 
 
 auxInputComboBox.Bind(wx.EVT_COMBOBOX, input_device_on_select)

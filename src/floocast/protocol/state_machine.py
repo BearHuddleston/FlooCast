@@ -1,3 +1,4 @@
+import logging
 from threading import RLock, Thread
 
 from floocast.protocol.interface import FlooInterface
@@ -23,6 +24,8 @@ from floocast.protocol.messages import (
     FlooMsgVr,
 )
 from floocast.settings import FlooSettings
+
+logger = logging.getLogger(__name__)
 
 
 class SourceState:
@@ -91,7 +94,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         self._lastSavedState = None
         saved_state = self._settings.get_item("last_streaming_state")
         if saved_state is not None and saved_state >= SourceState.STREAMING_START:
-            print(f"[FlooStateMachine] Restored last streaming state: {saved_state}")
+            logger.info("Restored last streaming state: %s", saved_state)
             self._sourceStateBeforeDisconnect = saved_state
             self._clearSavedState()
 
@@ -111,7 +114,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self.inf.sendMsg(cmdReadVersion)
             self.lastCmd = cmdReadVersion
         elif not enabled:
-            print(f"[FlooStateMachine] Device disconnected, saving sourceState={self.sourceState}")
+            logger.info("Device disconnected, saving sourceState=%s", self.sourceState)
             self._sourceStateBeforeDisconnect = self.sourceState
             self.lastCmd = None
             self.pendingCmdPara = None
@@ -122,7 +125,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         _wx_call_after(self.delegate.connectionErrorInd, error)
 
     def handleMessage(self, message: FlooMessage):
-        print("FlooStateMachine: handleMessage " + message.header)
+        logger.debug("handleMessage %s", message.header)
         if self.state == FlooStateMachine.INIT:
             if isinstance(message, FlooMsgVr):
                 if isinstance(self.lastCmd, FlooMsgVr):
@@ -144,7 +147,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     self.inf.sendMsg(cmdGetSourceState)
                     self.lastCmd = cmdGetSourceState
             elif isinstance(message, FlooMsgSt):
-                print(f"[FlooStateMachine] ST message: state={message.state}")
+                logger.debug("ST message: state=%s", message.state)
                 self.sourceState = message.state
                 _wx_call_after(self.delegate.sourceStateInd, message.state)
                 if isinstance(self.lastCmd, FlooMsgSt):
@@ -281,7 +284,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 self.lastCmd = None
                 self.pendingCmdPara = None
             elif isinstance(message, FlooMsgSt):
-                print(f"[FlooStateMachine] ST message (CONNECTED): state={message.state}")
+                logger.debug("ST message (CONNECTED): state=%s", message.state)
                 self.sourceState = message.state
                 _wx_call_after(self.delegate.sourceStateInd, message.state)
                 if (
@@ -349,7 +352,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             bit = BroadcastModeBit.PUBLIC
             oldValue = self.broadcastMode & bit != 0
             if oldValue != enable:
-                print("setPublicBroadcast")
+                logger.debug("setPublicBroadcast")
                 self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
                     bit if enable else 0
                 )
@@ -362,7 +365,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             bit = BroadcastModeBit.HIGH_QUALITY
             oldValue = self.broadcastMode & bit != 0
             if oldValue != enable:
-                print("setBroadcastHighQuality")
+                logger.debug("setBroadcastHighQuality")
                 self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
                     bit if enable else 0
                 )
@@ -375,7 +378,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             bit = BroadcastModeBit.ENCRYPT
             oldValue = self.broadcastMode & bit != 0
             if oldValue != enable:
-                print("setBroadcastEncrypt old: %d, new %d" % (oldValue, enable))
+                logger.debug("setBroadcastEncrypt old: %d, new %d", oldValue, enable)
                 self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
                     bit if enable else 0
                 )
@@ -388,7 +391,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             bit = BroadcastModeBit.STOP_ON_IDLE
             oldValue = self.broadcastMode & bit != 0
             if oldValue != enable:
-                print("setBroadcastStopOnIdle old: %d, new %d" % (oldValue, enable))
+                logger.debug("setBroadcastStopOnIdle old: %d, new %d", oldValue, enable)
                 self.pendingCmdPara = (self.broadcastMode & ~bit & BroadcastModeBit.ALL_MASK) | (
                     bit if enable else 0
                 )
@@ -402,7 +405,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 self.broadcastMode & BroadcastModeBit.LATENCY_MASK
             ) >> BroadcastModeBit.LATENCY_SHIFT
             if oldValue != mode:
-                print("setBroadcastLatency old: %d, new %d" % (oldValue, mode))
+                logger.debug("setBroadcastLatency old: %d, new %d", oldValue, mode)
                 self.pendingCmdPara = (self.broadcastMode & BroadcastModeBit.FLAGS_MASK) | (
                     mode << BroadcastModeBit.LATENCY_SHIFT
                 )
@@ -456,9 +459,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
     def _attemptAutoReconnect(self):
         prevState = self._sourceStateBeforeDisconnect
         currState = self.sourceState
-        print(
-            f"[FlooStateMachine] _attemptAutoReconnect: prevState={prevState}, currState={currState}"
-        )
+        logger.debug("_attemptAutoReconnect: prevState=%s, currState=%s", prevState, currState)
         if (
             prevState is not None
             and prevState >= SourceState.STREAMING_START
@@ -467,7 +468,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             self._reconnectAttempts = 0
             self._scheduleReconnect()
         else:
-            print("[FlooStateMachine] Auto-reconnect skipped: conditions not met")
+            logger.debug("Auto-reconnect skipped: conditions not met")
         self._sourceStateBeforeDisconnect = None
 
     def _clearSavedState(self):
@@ -487,18 +488,16 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         MAX_RETRIES = 8
         RETRY_DELAYS = [2000, 3000, 4000, 5000, 6000, 8000, 10000, 15000]
         if self._reconnectAttempts >= MAX_RETRIES:
-            print(f"[FlooStateMachine] Auto-reconnect: gave up after {MAX_RETRIES} attempts")
+            logger.info("Auto-reconnect: gave up after %d attempts", MAX_RETRIES)
             self._clearSavedState()
             return
         if self.sourceState >= SourceState.STREAMING_START:
-            print(
-                f"[FlooStateMachine] Auto-reconnect: already connected (state={self.sourceState})"
-            )
+            logger.debug("Auto-reconnect: already connected (state=%s)", self.sourceState)
             return
         self._cancelReconnectTimer()
         delay = RETRY_DELAYS[min(self._reconnectAttempts, len(RETRY_DELAYS) - 1)]
-        print(
-            f"[FlooStateMachine] Auto-reconnect: scheduling attempt {self._reconnectAttempts + 1} in {delay}ms"
+        logger.debug(
+            "Auto-reconnect: scheduling attempt %d in %dms", self._reconnectAttempts + 1, delay
         )
         _wx_call_after(
             lambda: setattr(self, "_reconnectTimer", wx.CallLater(delay, self._doReconnect))
@@ -507,24 +506,22 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
     def _doReconnect(self):
         self._reconnectAttempts += 1
         if self.sourceState >= SourceState.STREAMING_START:
-            print("[FlooStateMachine] Auto-reconnect: already connected, cancelling")
+            logger.debug("Auto-reconnect: already connected, cancelling")
             return
         if self.sourceState != 1:
-            print(f"[FlooStateMachine] Auto-reconnect: state={self.sourceState}, retrying later")
+            logger.debug("Auto-reconnect: state=%s, retrying later", self.sourceState)
             self._scheduleReconnect()
             return
-        print(
-            f"[FlooStateMachine] Auto-reconnect: attempt {self._reconnectAttempts}, toggling device 0"
-        )
+        logger.debug("Auto-reconnect: attempt %d, toggling device 0", self._reconnectAttempts)
         self.toggleConnection(0)
         _wx_call_after(lambda: wx.CallLater(3000, self._checkReconnectResult))
 
     def _checkReconnectResult(self):
         if self.sourceState >= SourceState.STREAMING_START:
-            print(f"[FlooStateMachine] Auto-reconnect: success! state={self.sourceState}")
+            logger.info("Auto-reconnect: success! state=%s", self.sourceState)
             self._reconnectAttempts = 0
         elif self.sourceState == 1:
-            print("[FlooStateMachine] Auto-reconnect: still idle, scheduling retry")
+            logger.debug("Auto-reconnect: still idle, scheduling retry")
             self._scheduleReconnect()
 
     def getRecentlyUsedDevices(self):

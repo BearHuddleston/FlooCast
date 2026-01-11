@@ -1,3 +1,4 @@
+import logging
 import time
 
 import serial
@@ -5,6 +6,8 @@ import serial.tools.list_ports
 
 from floocast.protocol.messages import FlooMessage
 from floocast.protocol.parser import FlooParser
+
+logger = logging.getLogger(__name__)
 
 
 class FlooInterface:
@@ -24,9 +27,9 @@ class FlooInterface:
         self.isSleep = flag
 
     def reset(self):
-        print("FlooInterface: reset")
+        logger.debug("reset")
         if self.port_opened:
-            print("FlooInterface: close port")
+            logger.debug("close port")
             self.port.close()
         # self.port_name = None
         self.port_opened = False
@@ -37,14 +40,16 @@ class FlooInterface:
         if self.isSleep:
             return False
 
-        print([port.hwid for port in serial.tools.list_ports.grep("0A12:4007.*FMA120.*")])
+        logger.debug(
+            "Ports: %s", [port.hwid for port in serial.tools.list_ports.grep("0A12:4007.*FMA120.*")]
+        )
         ports = [
             port.name for port in serial.tools.list_ports.grep("0A12:4007.*FMA120.*")
         ]  # FMA120
         if ports:
             if not self.port_opened:
                 self.port_name = ports[0]
-                print("monitor_port: try open " + self.port_name)
+                logger.debug("monitor_port: try open %s", self.port_name)
                 try:
                     self.port = serial.Serial(
                         port="/dev/" + self.port_name,
@@ -71,13 +76,13 @@ class FlooInterface:
                         self.delegate.connectionError("port_busy")
                         self.port_locked = True
                     else:
-                        print(f"Port error: {e}")
+                        logger.error("Port error: %s", e)
                         self.delegate.connectionError("port_error")
                         self.reset()
                     return False
         else:
             if self.port_opened:
-                print("monitor_port: no port exists")
+                logger.debug("monitor_port: no port exists")
                 self.reset()
         return False
 
@@ -103,7 +108,7 @@ class FlooInterface:
                             self.delegate.handleMessage(flooMsg)
                         time.sleep(0.01)
                     except Exception as exec0:
-                        print(exec0)
+                        logger.exception("Error reading from port: %s", exec0)
                         self.portOpenDelay = None
                         self.reset()
             elif not self.port_locked:
@@ -113,7 +118,7 @@ class FlooInterface:
     def sendMsg(self, msg: FlooMessage):
         if self.port is not None and self.port.is_open and not self.isSleep:
             try:
-                print("FlooInterface: send " + msg.bytes.decode())
+                logger.debug("send %s", msg.bytes.decode())
                 self.port.write(msg.bytes)
             except Exception as exec0:
-                print(exec0)
+                logger.exception("Error sending message: %s", exec0)
