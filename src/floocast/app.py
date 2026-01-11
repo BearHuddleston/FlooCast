@@ -573,6 +573,10 @@ def update_dfu_info(state: int):
         settingsPanel.Enable()
         dfuInfo.SetLabelText(_("Firmware") + " " + firmwareVersion)
         dfuUndergoing = False
+    elif state == FlooDfuThread.DFU_ERROR_NOT_SUPPORTED:
+        dfuInfo.SetLabelText(_("DFU not supported on Linux"))
+        windowSb.Enable()
+        dfuUndergoing = False
     elif state > FlooDfuThread.DFU_STATE_DONE:
         dfuInfo.SetLabelText(_("Upgrade error"))
         windowSb.Enable()
