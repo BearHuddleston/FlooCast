@@ -19,7 +19,7 @@ def main():
 
     if getattr(sys, "frozen", False):
         app_dir = os.path.dirname(sys.executable)
-    elif os.path.exists("/opt/floocast/FlooCastApp.ico"):
+    elif os.path.exists("/opt/floocast/locales"):
         app_dir = "/opt/floocast"
     else:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
