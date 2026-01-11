@@ -1,13 +1,18 @@
+import importlib.util
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "src")
-
-from floocast.gui.codec_formatter import (
-    APTX_ADAPTIVE_CODEC,
-    APTX_LOSSLESS_CODEC,
-    RSSI_OFFSET,
-    CodecDisplayFormatter,
+spec = importlib.util.spec_from_file_location(
+    "codec_formatter", Path(__file__).parent.parent / "src/floocast/gui/codec_formatter.py"
 )
+codec_formatter = importlib.util.module_from_spec(spec)
+sys.modules["codec_formatter"] = codec_formatter
+spec.loader.exec_module(codec_formatter)
+
+APTX_ADAPTIVE_CODEC = codec_formatter.APTX_ADAPTIVE_CODEC
+APTX_LOSSLESS_CODEC = codec_formatter.APTX_LOSSLESS_CODEC
+RSSI_OFFSET = codec_formatter.RSSI_OFFSET
+CodecDisplayFormatter = codec_formatter.CodecDisplayFormatter
 
 CODEC_STRINGS = [
     "None",
