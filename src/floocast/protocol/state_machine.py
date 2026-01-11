@@ -480,7 +480,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         if self._reconnectTimer is not None:
             try:
                 self._reconnectTimer.Stop()
-            except Exception:
+            except RuntimeError:
                 pass
             self._reconnectTimer = None
 
