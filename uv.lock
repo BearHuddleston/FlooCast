@@ -159,7 +159,6 @@ dependencies = [
     { name = "pystray" },
     { name = "sounddevice" },
     { name = "urllib3" },
-    { name = "wxpython" },
 ]
 
 [package.optional-dependencies]
@@ -168,6 +167,9 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
+]
+gui = [
+    { name = "wxpython" },
 ]
 
 [package.metadata]
@@ -184,9 +186,9 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "sounddevice" },
     { name = "urllib3" },
-    { name = "wxpython", specifier = ">=4.2" },
+    { name = "wxpython", marker = "extra == 'gui'", specifier = ">=4.2" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["gui", "dev"]
 
 [[package]]
 name = "identify"

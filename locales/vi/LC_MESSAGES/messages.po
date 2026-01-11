@@ -308,4 +308,3 @@ msgstr "Phát đầu vào âm thanh bổ sung"
 
 msgid "Start Minimized"
 msgstr "Khởi động thu nhỏ"
-
