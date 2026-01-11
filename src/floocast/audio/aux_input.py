@@ -5,10 +5,13 @@
 # Optional helper:
 #   - set_output_mapping([3,4])  # force device channel mapping if needed
 
+import logging
 from collections.abc import Sequence
 
 import numpy as np
 import sounddevice as sd
+
+logger = logging.getLogger(__name__)
 
 
 class FlooAuxInput:
@@ -138,7 +141,7 @@ class FlooAuxInput:
             self._input_disabled = True
             if was_running:
                 self.stop()
-            print("[FlooAuxInput] Input set to 'None' → loop disabled.")
+            logger.info("Input set to 'None' - loop disabled.")
             return
 
         self._input_disabled = False
@@ -149,7 +152,7 @@ class FlooAuxInput:
         }
 
         if was_running:
-            print("[FlooAuxInput] Input changed → restarting loop...")
+            logger.info("Input changed - restarting loop...")
             self.stop()
 
         name_hint = self._input_sel["name"] or None
@@ -162,7 +165,7 @@ class FlooAuxInput:
         if new_bs == self._blocksize:
             return
         self._blocksize = new_bs
-        print(f"[FlooAuxInput] Blocksize set → {new_bs}")
+        logger.debug("Blocksize set: %d", new_bs)
         if self._running:
             hint = self._last_start_name_hint
             self.stop()
@@ -184,11 +187,11 @@ class FlooAuxInput:
         finally:
             self._stream = None
             self._running = False
-            print("[FlooAuxInput] Loop stopped.")
+            logger.debug("Loop stopped.")
 
     def _start_loop_internal(self, *, name_hint: str | None) -> None:
         if self._input_disabled:
-            print("[FlooAuxInput] Not starting: input is 'None'.")
+            logger.debug("Not starting: input is 'None'.")
             return
 
         dtype = self.DTYPE
@@ -202,7 +205,7 @@ class FlooAuxInput:
         )
         out_dev = self._pick_output(self.OUTPUT_HINTS)
         if add_in is None or out_dev is None:
-            print("[FlooAuxInput] ERROR: No valid input or output device.")
+            logger.error("No valid input or output device.")
             return
 
         in_dev_info = sd.query_devices(add_in["id"])
@@ -210,18 +213,18 @@ class FlooAuxInput:
         self._cap_channels = 2 if int(in_dev_info.get("max_input_channels", 1)) >= 2 else 1
         self._pb_channels = 2 if int(out_dev_info.get("max_output_channels", 2)) >= 2 else 1
 
-        print(
-            f"[FlooAuxInput] Using Input  : {add_in['name']} [{add_in['backend']}] ({self._cap_channels} ch)"
+        logger.info(
+            "Using Input: %s [%s] (%d ch)", add_in["name"], add_in["backend"], self._cap_channels
         )
-        print(
-            f"[FlooAuxInput] Using Output : {out_dev['name']} [{out_dev['backend']}] ({self._pb_channels} ch)"
+        logger.info(
+            "Using Output: %s [%s] (%d ch)", out_dev["name"], out_dev["backend"], self._pb_channels
         )
 
         rate = self._pick_common_rate(
             add_in["id"], out_dev["id"], dtype, self._cap_channels, self._pb_channels
         )
         if rate is None:
-            print("[FlooAuxInput] No common sample rate (48k or 44.1k). Not starting.")
+            logger.warning("No common sample rate (48k or 44.1k). Not starting.")
             return
         self._rate = rate
         self._dtype = dtype
@@ -268,8 +271,12 @@ class FlooAuxInput:
         )
         self._stream.start()
         self._running = True
-        print(
-            f"[FlooAuxInput] Loop started @ {self._rate} Hz | block={chosen_block} | dtype={self._dtype} | latency={latency}"
+        logger.info(
+            "Loop started @ %d Hz | block=%d | dtype=%s | latency=%s",
+            self._rate,
+            chosen_block,
+            self._dtype,
+            latency,
         )
 
     # -------------- Selection & Utilities --------------
@@ -421,7 +428,7 @@ class FlooAuxInput:
                 ok_out = True
             except Exception:
                 ok_out = False
-            print(f"[FlooAuxInput] Rate check {r} Hz: IN={ok_in} OUT={ok_out}")
+            logger.debug("Rate check %d Hz: IN=%s OUT=%s", r, ok_in, ok_out)
             if ok_in and ok_out:
                 return r
         return None

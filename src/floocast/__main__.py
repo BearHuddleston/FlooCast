@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 """Entry point for floocast application."""
 
+import logging
 import os
 import sys
 
 
+def _configure_logging():
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+
 def main():
+    _configure_logging()
+
     if getattr(sys, "frozen", False):
         app_dir = os.path.dirname(sys.executable)
     elif os.path.exists("/opt/floocast/FlooCastApp.ico"):
