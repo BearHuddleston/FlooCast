@@ -573,6 +573,10 @@ def update_dfu_info(state: int):
         settingsPanel.Enable()
         dfuInfo.SetLabelText(_("Firmware") + " " + firmwareVersion)
         dfuUndergoing = False
+    elif state == FlooDfuThread.DFU_ERROR_NOT_SUPPORTED:
+        dfuInfo.SetLabelText(_("DFU not supported on Linux"))
+        windowSb.Enable()
+        dfuUndergoing = False
     elif state > FlooDfuThread.DFU_STATE_DONE:
         dfuInfo.SetLabelText(_("Upgrade error"))
         windowSb.Enable()
@@ -679,23 +683,16 @@ class FlooSmDelegate(FlooStateMachineDelegate):
             firmwareVersion = version if firstBatch == "" else version[:-1]
             # firmwareVersion = firmwareVersion[2:] if a2dpSink else firmwareVersion
             try:
+                ssl_context = ssl.create_default_context(cafile=certifi.where())
                 if firmwareVariant == 1:
-                    latest = urllib.request.urlopen(
-                        "https://www.flairmesh.com/Dongle/FMA120/latest_as1",
-                        context=ssl.create_default_context(cafile=certifi.where()),
-                    ).read()
+                    url = "https://www.flairmesh.com/Dongle/FMA120/latest_as1"
                 elif firmwareVariant == 2:
-                    latest = urllib.request.urlopen(
-                        "https://www.flairmesh.com/Dongle/FMA120/latest_as2",
-                        context=ssl.create_default_context(cafile=certifi.where()),
-                    ).read()
+                    url = "https://www.flairmesh.com/Dongle/FMA120/latest_as2"
                 else:
-                    latest = urllib.request.urlopen(
-                        "https://www.flairmesh.com/Dongle/FMA120/latest",
-                        context=ssl.create_default_context(cafile=certifi.where()),
-                    ).read()
+                    url = "https://www.flairmesh.com/Dongle/FMA120/latest"
+                latest = urllib.request.urlopen(url, context=ssl_context, timeout=10).read()
                 latest = latest.decode("utf-8").rstrip()
-            except Exception:
+            except (urllib.error.URLError, TimeoutError):
                 # print("Cann't get the latest version")
                 latest = "Unable"
 
