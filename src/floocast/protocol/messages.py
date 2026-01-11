@@ -213,6 +213,7 @@ class FlooMsgAm(_HexValueMessage):
     VALUE_ATTR = "mode"
     STRICT_LENGTH = False
     ENCODING = "utf-8"
+    mode: int | None
 
 
 class FlooMsgBe(_StringPayloadMessage):
@@ -234,6 +235,7 @@ class FlooMsgBm(_HexValueMessage):
 
     HEADER = "BM"
     VALUE_ATTR = "mode"
+    mode: int | None
 
 
 class FlooMsgBn(_StringPayloadMessage):
@@ -241,6 +243,7 @@ class FlooMsgBn(_StringPayloadMessage):
 
     HEADER = "BN"
     VALUE_ATTR = "name"
+    name: str | None
 
 
 class FlooMsgCp(_IndexedCommand):
@@ -328,6 +331,7 @@ class FlooMsgFt(_HexValueMessage):
     HEADER = "FT"
     VALUE_ATTR = "feature"
     STRICT_LENGTH = False
+    feature: int | None
 
 
 class FlooMsgIq(_SendOnlyCommand):
@@ -341,6 +345,7 @@ class FlooMsgLa(_HexValueMessage):
 
     HEADER = "LA"
     VALUE_ATTR = "state"
+    state: int | None
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
@@ -356,6 +361,7 @@ class FlooMsgLf(_HexValueMessage):
     VALUE_ATTR = "mode"
     STRICT_LENGTH = False
     ENCODING = "utf-8"
+    mode: int | None
 
 
 class FlooMsgMd(_HexValueMessage):
@@ -365,6 +371,7 @@ class FlooMsgMd(_HexValueMessage):
     VALUE_ATTR = "mode"
     STRICT_LENGTH = False
     ENCODING = "utf-8"
+    mode: int | None
 
 
 class FlooMsgOk(FlooMessage):
@@ -410,6 +417,7 @@ class FlooMsgSt(_HexValueMessage):
 
     HEADER = "ST"
     VALUE_ATTR = "state"
+    state: int | None
 
 
 class FlooMsgTc(_IndexedCommand):
@@ -427,7 +435,7 @@ class FlooMsgUnknown(FlooMessage):
         super().__init__(isSend, self.HEADER)
 
     @classmethod
-    def create_valid_msg(cls, pkt: bytes = None):
+    def create_valid_msg(cls, pkt: bytes | None = None):
         return cls(False)
 
 

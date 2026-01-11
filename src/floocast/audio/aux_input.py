@@ -68,7 +68,7 @@ class FlooAuxInput:
         self._xruns = 0
         self._debug = False
 
-        self._out_mapping = None
+        self._out_mapping: list[int] | None = None
 
     # ------- Optional helper -------
     def set_output_mapping(self, mapping: Sequence[int] | None) -> None:

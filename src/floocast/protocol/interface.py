@@ -18,7 +18,7 @@ class FlooInterface:
         self.delegate = delegate
         self.isSleep = False
         self.port_name = None
-        self.port_opened = False
+        self.port_opened: bool = False
         self.port_locked = False
         self.port = None
         self.parser = FlooParser()
@@ -59,7 +59,7 @@ class FlooInterface:
                         stopbits=serial.STOPBITS_ONE,
                         exclusive=True,
                     )
-                    self.port_opened = self.port.is_open
+                    self.port_opened = bool(self.port.is_open)
                     if self.port_opened:
                         self.port_locked = False
                         self.delegate.interfaceState(True, self.port_name)

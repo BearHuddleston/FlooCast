@@ -42,6 +42,11 @@ from floocast.settings import FlooSettings
 
 logger = logging.getLogger(__name__)
 
+flooSm: FlooStateMachine
+newPairingButton: wx.Button
+pairedDeviceListbox: wx.ListBox
+currentPairedDeviceList: list[tuple[int, bytes, bytes]]
+
 appIcon = APP_ICON
 appTitle = APP_TITLE
 appLogoPng = APP_LOGO_PNG
@@ -650,10 +655,10 @@ else:
 
 # All GUI object initialized, start FlooStateMachine
 class FlooSmDelegate(FlooStateMachineDelegate):
-    def deviceDetected(self, flag: bool, port: str, version: str = None):
+    def deviceDetected(self, flag: bool, port: str, version: str | None = None):
         global dfuInfoBind
 
-        if flag:
+        if flag and version is not None:
             update_status_bar(_("Use FlooGoo dongle on ") + " " + port)
             state.first_batch = "" if re.search(r"\d+$", version) else version[-1]
             state.firmware_variant = 1 if version.startswith("AS1") else 0

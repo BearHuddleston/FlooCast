@@ -198,7 +198,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     else:
                         self.pairedDevices.append(message.name)
             elif isinstance(message, FlooMsgFt):
-                if isinstance(self.lastCmd, FlooMsgFt):
+                if isinstance(self.lastCmd, FlooMsgFt) and message.feature is not None:
                     self.feature = message.feature
                     _wx_call_after(self.delegate.ledEnabledInd, message.feature & FeatureBit.LED)
                     _wx_call_after(
@@ -222,7 +222,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     cmdGetCodecInUse = FlooMsgAc(True)
                     self.inf.sendMsg(cmdGetCodecInUse)
                     self.lastCmd = cmdGetCodecInUse
-            elif isinstance(message, (FlooMsgAc, FlooMsgEr)):
+            elif isinstance(message, FlooMsgAc | FlooMsgEr):
                 if isinstance(self.lastCmd, FlooMsgAc) and isinstance(message, FlooMsgAc):
                     _wx_call_after(
                         self.delegate.audioCodecInUseInd,
@@ -294,7 +294,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 self.sourceState = message.state
                 _wx_call_after(self.delegate.sourceStateInd, message.state)
                 if (
-                    message.state >= SourceState.STREAMING_START
+                    message.state is not None
+                    and message.state >= SourceState.STREAMING_START
                     and message.state != self._lastSavedState
                 ):
                     self._lastSavedState = message.state
@@ -323,7 +324,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     message.transportDelay,
                     message.presentDelay,
                 )
-            elif isinstance(message, FlooMsgFt):
+            elif isinstance(message, FlooMsgFt) and message.feature is not None:
                 self.feature = message.feature
                 _wx_call_after(self.delegate.ledEnabledInd, self.feature & FeatureBit.LED)
                 _wx_call_after(

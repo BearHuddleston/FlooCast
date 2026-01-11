@@ -20,6 +20,9 @@ $RUN ruff check .
 echo "=> ruff format --check"
 $RUN ruff format --check .
 
+echo "=> mypy"
+$RUN mypy src/
+
 echo "=> pytest"
 $RUN pytest -q
 

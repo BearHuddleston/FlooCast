@@ -45,16 +45,17 @@ class FlooParser:
     def __init__(self):
         super().__init__()
 
-    def create_valid_message(self, pkt: bytes) -> FlooMessage:
+    def create_valid_message(self, pkt: bytes) -> FlooMessage | None:
         msgLen = len(pkt)
         if msgLen < 2:
             return None
         msgHeader = pkt[:2].decode("ascii")
         if msgHeader in FlooParser.MSG_HEADERS:
             logger.debug("create a %s message", msgHeader)
-            return FlooParser.MSG_HEADERS[msgHeader](pkt)
+            result: FlooMessage | None = FlooParser.MSG_HEADERS[msgHeader](pkt)
+            return result
         else:
             return FlooMsgUnknown(False)
 
-    def run(self, pkt: bytes) -> FlooMessage:
+    def run(self, pkt: bytes) -> FlooMessage | None:
         return self.create_valid_message(pkt)
