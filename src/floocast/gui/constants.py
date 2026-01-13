@@ -27,6 +27,12 @@ CODEC_STRINGS = [
     "aptX\u2122 Voice",
 ]
 
+CODEC_LC3 = 7
+CODEC_APTX_LOSSLESS = 10
+LE_AUDIO_CODECS = {CODEC_LC3}
+CLASSIC_BT_CODECS = {1, 2, 3, 4, 5, 6, 8, 9, 10, 11}
+APTX_CODECS = {4, 5, 6, 8, 9, 10, 11}
+
 
 def get_source_state_strings(translate_func):
     _ = translate_func

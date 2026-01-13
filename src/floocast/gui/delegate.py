@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import certifi
 
+from floocast.gui.constants import LE_AUDIO_CODECS
 from floocast.protocol.state_machine_delegate import FlooStateMachineDelegate
 
 logger = logging.getLogger(__name__)
@@ -223,6 +224,27 @@ class StateMachineDelegate(FlooStateMachineDelegate):
             codec, rssi, rate, spkSampleRate, micSampleRate, sduInt, transportDelay, presentDelay
         )
         ctrl.audio_mode_panel.codec_in_use_text.SetLabelText(label)
+
+        ctrl.state.current_codec = codec
+        is_le_audio = codec in LE_AUDIO_CODECS
+
+        if is_le_audio and ctrl.state.audio_mode in (0, 1):
+            ctrl.state.device_is_le_audio_only = True
+            ctrl.audio_mode_panel.codec_info_text.SetLabelText(
+                ctrl._("Device supports LE Audio only")
+            )
+            ctrl.settings_panel_obj.aptx_lossless_checkbox.Disable()
+            ctrl.settings_panel_obj.aptx_lossless_button.Disable()
+        elif codec != 0:
+            ctrl.state.device_is_le_audio_only = False
+            ctrl.audio_mode_panel.codec_info_text.SetLabelText("")
+            if ctrl.state.audio_mode == 0:
+                ctrl.settings_panel_obj.aptx_lossless_checkbox.Enable()
+                ctrl.settings_panel_obj.aptx_lossless_button.Enable()
+        else:
+            ctrl.state.device_is_le_audio_only = False
+            ctrl.audio_mode_panel.codec_info_text.SetLabelText("")
+
         ctrl.audio_mode_panel.codec_in_use_sizer.Layout()
 
     def ledEnabledInd(self, enabled):

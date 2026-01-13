@@ -39,6 +39,14 @@ class AudioModePanel:
         self.codec_in_use_sizer.Add(
             self.codec_in_use_text, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, border=4
         )
+        self.codec_info_text = wx.StaticText(self.codec_in_use_box, wx.ID_ANY, "")
+        self.codec_info_text.SetForegroundColour(wx.Colour(128, 128, 128))
+        font = self.codec_info_text.GetFont()
+        font.SetPointSize(font.GetPointSize() - 1)
+        self.codec_info_text.SetFont(font)
+        self.codec_in_use_sizer.Add(
+            self.codec_info_text, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, border=4
+        )
 
         self.upper_sizer.Add(self.high_quality_radio, flag=wx.EXPAND | wx.ALL, border=4)
         self.upper_sizer.Add(self.gaming_radio, flag=wx.EXPAND | wx.ALL, border=4)
