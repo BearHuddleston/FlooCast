@@ -377,7 +377,11 @@ class AppController:
         self.status_bar.SetStatusText(info)
 
     def _aux_input_broadcast_enable(self, enable):
-        if enable and self.state.saved_name and self.state.saved_name in self.state.name_input_devices:
+        if (
+            enable
+            and self.state.saved_name
+            and self.state.saved_name in self.state.name_input_devices
+        ):
             self.broadcast_panel.aux_input_combo.SetValue(self.state.saved_name)
             self.state.looper.set_input(self.state.saved_device)
         else:
@@ -429,9 +433,9 @@ class AppController:
     def _on_quit_window(self, event):
         if self.state.looper:
             self.state.looper.stop()
-        if hasattr(self, 'state_machine') and self.state_machine:
-            if hasattr(self.state_machine, 'inf') and self.state_machine.inf:
-                if hasattr(self.state_machine.inf, 'stop'):
+        if hasattr(self, "state_machine") and self.state_machine:
+            if hasattr(self.state_machine, "inf") and self.state_machine.inf:
+                if hasattr(self.state_machine.inf, "stop"):
                     self.state_machine.inf.stop()
         self.prefer_lea_toggle = None
         self.public_broadcast_toggle = None
