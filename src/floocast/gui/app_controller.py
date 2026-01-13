@@ -6,6 +6,9 @@ import sys
 
 import wx
 
+if hasattr(wx.App, "GTKSuppressDiagnostics"):
+    wx.App.GTKSuppressDiagnostics()
+
 from floocast.audio.aux_input import FlooAuxInput
 from floocast.dfu_thread import FlooDfuThread
 from floocast.gui.codec_formatter import CodecDisplayFormatter

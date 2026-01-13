@@ -7,8 +7,10 @@ import sys
 
 
 def _configure_logging():
+    level_name = os.environ.get("FLOOCAST_LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=level,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         datefmt="%H:%M:%S",
     )
