@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 
 import serial
@@ -22,6 +23,7 @@ class FlooInterface:
         self.port_locked = False
         self.port = None
         self.parser = FlooParser()
+        self._stop_event = threading.Event()
 
     def setSleep(self, flag):
         self.isSleep = flag
@@ -86,9 +88,12 @@ class FlooInterface:
                 self.reset()
         return False
 
+    def stop(self):
+        self._stop_event.set()
+
     def run(self):
         MAX_CONSECUTIVE_FAILURES = 3
-        while True:
+        while not self._stop_event.is_set():
             if self.monitor_port():
                 consecutive_failures = 0
                 while self.port is not None and self.port.is_open and not self.isSleep:
