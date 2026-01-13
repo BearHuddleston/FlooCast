@@ -43,6 +43,11 @@ class FeatureBit:
     APTX_LOSSLESS = 0x02
     GATT_CLIENT = 0x04
     AUDIO_SOURCE = 0x08
+    ALL_MASK = 0x0F
+    MASK_EXCEPT_LED = ALL_MASK & ~LED
+    MASK_EXCEPT_APTX_LOSSLESS = ALL_MASK & ~APTX_LOSSLESS
+    MASK_EXCEPT_GATT_CLIENT = ALL_MASK & ~GATT_CLIENT
+    MASK_EXCEPT_AUDIO_SOURCE = ALL_MASK & ~AUDIO_SOURCE
 
 
 class BroadcastModeBit:
@@ -565,7 +570,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             if self.feature is None:
                 return
             if self.state == FlooStateMachine.CONNECTED:
-                feature = (self.feature & 0x0E) + onOff
+                feature = (self.feature & FeatureBit.MASK_EXCEPT_LED) | (
+                    FeatureBit.LED if onOff else 0
+                )
                 cmdLedOnOff = FlooMsgFt(True, feature)
                 self.pendingCmdPara = feature
                 self.lastCmd = cmdLedOnOff
@@ -576,7 +583,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             if self.feature is None:
                 return
             if self.state == FlooStateMachine.CONNECTED:
-                feature = (self.feature & 0x0D) + (0x02 if onOff else 0x00)
+                feature = (self.feature & FeatureBit.MASK_EXCEPT_APTX_LOSSLESS) | (
+                    FeatureBit.APTX_LOSSLESS if onOff else 0
+                )
                 cmdLosslessOnOff = FlooMsgFt(True, feature)
                 self.lastCmd = cmdLosslessOnOff
                 self.inf.sendMsg(cmdLosslessOnOff)
@@ -586,7 +595,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             if self.feature is None:
                 return
             if self.state == FlooStateMachine.CONNECTED:
-                feature = (self.feature & 0x0B) + (0x04 if onOff else 0x00)
+                feature = (self.feature & FeatureBit.MASK_EXCEPT_GATT_CLIENT) | (
+                    FeatureBit.GATT_CLIENT if onOff else 0
+                )
                 cmdGattClientOnOff = FlooMsgFt(True, feature)
                 self.lastCmd = cmdGattClientOnOff
                 self.inf.sendMsg(cmdGattClientOnOff)
@@ -596,8 +607,10 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             if self.feature is None:
                 return
             if self.state == FlooStateMachine.CONNECTED:
-                feature = (self.feature & 0x07) + (0x08 if onOff else 0x00)
-                cmdLedOnOff = FlooMsgFt(True, feature)
+                feature = (self.feature & FeatureBit.MASK_EXCEPT_AUDIO_SOURCE) | (
+                    FeatureBit.AUDIO_SOURCE if onOff else 0
+                )
+                cmdUsbInputOnOff = FlooMsgFt(True, feature)
                 self.pendingCmdPara = feature
-                self.lastCmd = cmdLedOnOff
-                self.inf.sendMsg(cmdLedOnOff)
+                self.lastCmd = cmdUsbInputOnOff
+                self.inf.sendMsg(cmdUsbInputOnOff)

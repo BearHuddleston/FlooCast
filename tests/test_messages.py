@@ -1,9 +1,5 @@
 """Tests for protocol message classes."""
 
-import sys
-
-sys.path.insert(0, "src")
-
 from floocast.protocol.messages import (
     FlooMessage,
     FlooMsgAc,

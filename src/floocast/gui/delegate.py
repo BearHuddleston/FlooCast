@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import ssl
 import urllib.request
@@ -8,6 +9,52 @@ from typing import TYPE_CHECKING
 import certifi
 
 from floocast.protocol.state_machine_delegate import FlooStateMachineDelegate
+
+logger = logging.getLogger(__name__)
+
+VERSION_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _is_valid_version(version: str) -> bool:
+    """Validate version string to prevent URL injection."""
+    return bool(VERSION_PATTERN.match(version)) and len(version) <= 32
+
+
+def _compare_versions(v1: str, v2: str) -> int:
+    """Compare two version strings semantically.
+
+    Returns:
+        -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+    """
+
+    def normalize(v: str) -> list[int | str]:
+        parts: list[int | str] = []
+        for part in re.split(r"[._-]", v):
+            if part.isdigit():
+                parts.append(int(part))
+            else:
+                parts.append(part)
+        return parts
+
+    def _compare_parts(a: int | str, b: int | str) -> int:
+        s1, s2 = str(a), str(b)
+        if s1 < s2:
+            return -1
+        if s1 > s2:
+            return 1
+        return 0
+
+    n1, n2 = normalize(v1), normalize(v2)
+    for p1, p2 in zip(n1, n2, strict=False):
+        cmp = _compare_parts(p1, p2)
+        if cmp != 0:
+            return cmp
+    if len(n1) < len(n2):
+        return -1
+    if len(n1) > len(n2):
+        return 1
+    return 0
+
 
 if TYPE_CHECKING:
     from floocast.gui.app_controller import AppController
@@ -40,6 +87,10 @@ class StateMachineDelegate(FlooStateMachineDelegate):
             except (urllib.error.URLError, TimeoutError, ssl.SSLError, UnicodeDecodeError, OSError):
                 latest = "Unable"
 
+            if latest != "Unable" and not _is_valid_version(latest):
+                logger.warning("Invalid version string received: %r", latest)
+                latest = "Unable"
+
             version_sizer = ctrl.version_panel_obj.sizer
             if not ctrl.state.dfu_undergoing:
                 if latest == "Unable":
@@ -53,7 +104,7 @@ class StateMachineDelegate(FlooStateMachineDelegate):
                     )
                     version_sizer.Show(ctrl.version_panel_obj.new_firmware_url)
                     version_sizer.Layout()
-                elif latest > ctrl.state.firmware_version:
+                elif _compare_versions(latest, ctrl.state.firmware_version) > 0:
                     version_sizer.Hide(ctrl.version_panel_obj.dfu_info)
                     ctrl.version_panel_obj.new_firmware_url.SetLabelText(
                         ctrl._("New Firmware is available")

@@ -482,15 +482,13 @@ class AppController:
 
     def _on_broadcast_name_entry(self, event):
         name = self.broadcast_panel.broadcast_name_entry.GetValue()
-        name_bytes = name.encode("utf-8")
-        if 0 < len(name_bytes) < 31 and name.isprintable():
+        if 0 < len(name) < 31 and name.isascii() and name.isprintable():
             self.state_machine.setBroadcastName(name)
         event.Skip()
 
     def _on_broadcast_key_entry(self, event):
         key = self.broadcast_panel.broadcast_key_entry.GetValue()
-        key_bytes = key.encode("utf-8")
-        if 0 < len(key_bytes) < 17:
+        if 0 < len(key) < 17 and key.isascii() and key.isprintable():
             self.state_machine.setBroadcastKey(key)
         event.Skip()
 
@@ -580,6 +578,11 @@ class AppController:
                     file_basename = file_basename[:-1]
                 file_basename += self.state.first_batch
                 dfu_file = file_basename + ".bin"
+                selected_dir = os.path.realpath(os.path.dirname(filename))
+                dfu_real_path = os.path.realpath(dfu_file)
+                if not dfu_real_path.startswith(selected_dir + os.sep):
+                    logger.warning("Path traversal attempt blocked: %s", dfu_file)
+                    return
                 if os.path.isfile(dfu_file):
                     dfu_thread = FlooDfuThread([self.app_path, dfu_file], self._update_dfu_info)
                     dfu_thread.start()

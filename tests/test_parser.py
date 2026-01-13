@@ -1,9 +1,5 @@
 """Tests for protocol parser."""
 
-import sys
-
-sys.path.insert(0, "src")
-
 from floocast.protocol.messages import FlooMsgOk
 from floocast.protocol.parser import FlooParser
 

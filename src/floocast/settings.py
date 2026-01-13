@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+import stat
 import tempfile
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+SETTINGS_FILE_MODE = stat.S_IRUSR | stat.S_IWUSR
 
 
 class FlooSettings:
@@ -46,6 +49,7 @@ class FlooSettings:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, ensure_ascii=False)
             os.replace(tmp_path, self.path)
+            os.chmod(self.path, SETTINGS_FILE_MODE)
         except OSError as e:
             logger.exception("Failed to save settings to %s: %s", self.path, e)
             try:
