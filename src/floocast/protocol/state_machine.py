@@ -99,6 +99,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         self._reconnectTimer = None
         self._settings = FlooSettings()
         self._lastSavedState = None
+        self._load_saved_state()
+
+    def _load_saved_state(self):
         saved_state = self._settings.get_item("last_streaming_state")
         if saved_state is not None and saved_state >= SourceState.STREAMING_START:
             logger.info("Restored last streaming state: %s", saved_state)
