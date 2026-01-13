@@ -260,17 +260,23 @@ class FlooAuxInput:
             dtype=self._dtype,
         )
 
-        self._stream = sd.Stream(
-            device=(add_in["id"], out_dev["id"]),
-            samplerate=self._rate,
-            blocksize=chosen_block,
-            dtype=self._dtype,
-            channels=(self._cap_channels, self._pb_channels),
-            latency=latency,
-            callback=duplex_cb,
-        )
-        self._stream.start()
-        self._running = True
+        try:
+            self._stream = sd.Stream(
+                device=(add_in["id"], out_dev["id"]),
+                samplerate=self._rate,
+                blocksize=chosen_block,
+                dtype=self._dtype,
+                channels=(self._cap_channels, self._pb_channels),
+                latency=latency,
+                callback=duplex_cb,
+            )
+            self._stream.start()
+            self._running = True
+        except sd.PortAudioError as e:
+            logger.error("Failed to start audio stream: %s", e)
+            self._stream = None
+            self._running = False
+            return
         logger.info(
             "Loop started @ %d Hz | block=%d | dtype=%s | latency=%s",
             self._rate,
