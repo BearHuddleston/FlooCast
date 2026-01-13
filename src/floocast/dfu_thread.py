@@ -8,6 +8,7 @@ class FlooDfuThread(threading.Thread):
     def __init__(self, cmd, stateCallback):
         self.stateCallback = stateCallback
         threading.Thread.__init__(self)
+        self.daemon = True
 
     def run(self):
         self.stateCallback(FlooDfuThread.DFU_ERROR_NOT_SUPPORTED)
