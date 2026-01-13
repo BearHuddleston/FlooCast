@@ -47,6 +47,7 @@ class FlooAuxInput:
         return n
 
     def __init__(self, blocksize: int | None = None):
+        self._lock = threading.Lock()
         self._stream: sd.Stream | None = None
         self._running = False
 
@@ -136,7 +137,23 @@ class FlooAuxInput:
         }
 
     def set_input(self, selection: dict | None) -> None:
-        was_running = self._running
+        with self._lock:
+            was_running = self._running
+
+            if selection is None or self._is_saved_disabled(selection):
+                self._input_sel = {"id": None, "name": "None", "backend": ""}
+                self._input_disabled = True
+                if was_running:
+                    self.stop()
+                logger.info("Input set to 'None' - loop disabled.")
+                return
+
+            self._input_disabled = False
+            self._input_sel = {
+                "id": selection.get("id"),
+                "name": selection.get("name", ""),
+                "backend": selection.get("backend", ""),
+            }
 
         if selection is not None:
             if not all(k in selection for k in ("id", "name", "backend")):
@@ -146,37 +163,27 @@ class FlooAuxInput:
         if selection is None or self._is_saved_disabled(selection):
             self._input_sel = {"id": None, "name": "None", "backend": ""}
             self._input_disabled = True
+
             if was_running:
+                logger.info("Input changed - restarting loop...")
                 self.stop()
-            logger.info("Input set to 'None' - loop disabled.")
-            return
 
-        self._input_disabled = False
-        self._input_sel = {
-            "id": selection.get("id"),
-            "name": selection.get("name", ""),
-            "backend": selection.get("backend", ""),
-        }
-
-        if was_running:
-            logger.info("Input changed - restarting loop...")
-            self.stop()
-
-        name_hint = self._input_sel["name"] or None
-        self._last_start_name_hint = name_hint
-        self._start_loop_internal(name_hint=name_hint)
+            name_hint = self._input_sel["name"] or None
+            self._last_start_name_hint = name_hint
+            self._start_loop_internal(name_hint=name_hint)
 
     def set_blocksize(self, blocksize: int) -> None:
         """Update blocksize (frames per block) and restart if running."""
         new_bs = self._validate_blocksize(blocksize)
-        if new_bs == self._blocksize:
-            return
-        self._blocksize = new_bs
-        logger.debug("Blocksize set: %d", new_bs)
-        if self._running:
-            hint = self._last_start_name_hint
-            self.stop()
-            self._start_loop_internal(name_hint=hint)
+        with self._lock:
+            if new_bs == self._blocksize:
+                return
+            self._blocksize = new_bs
+            logger.debug("Blocksize set: %d", new_bs)
+            if self._running:
+                hint = self._last_start_name_hint
+                self.stop()
+                self._start_loop_internal(name_hint=hint)
 
     def stop(self) -> None:
         if not self._running:
