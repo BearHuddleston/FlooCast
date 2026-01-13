@@ -3,6 +3,20 @@
 import logging
 import os
 
+try:
+    import gi
+
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import GLib
+
+    GLib.log_set_handler(
+        "libayatana-appindicator",
+        GLib.LogLevelFlags.LEVEL_WARNING,
+        lambda *args: None,
+    )
+except (ImportError, ValueError):
+    pass
+
 import pystray
 import wx
 from PIL import Image
