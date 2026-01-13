@@ -46,8 +46,11 @@ class FlooCastTrayIcon:
         except (AttributeError, RuntimeError):
             pass
         self.frame.Raise()
-        child = self.frame.FindFocus() or self.frame.FindWindowById(wx.ID_ANY)
-        (child or self.frame).SetFocus()
+        child = self.frame.FindFocus()
+        if child:
+            child.SetFocus()
+        else:
+            self.frame.SetFocus()
         if not self.frame.IsActive():
             try:
                 flag = getattr(wx, "USER_ATTENTION_INFO", 0)
