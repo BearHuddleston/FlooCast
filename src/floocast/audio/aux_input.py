@@ -136,6 +136,11 @@ class FlooAuxInput:
     def set_input(self, selection: dict | None) -> None:
         was_running = self._running
 
+        if selection is not None:
+            if not all(k in selection for k in ("id", "name", "backend")):
+                logger.warning("Invalid device selection: missing required keys")
+                return
+
         if selection is None or self._is_saved_disabled(selection):
             self._input_sel = {"id": None, "name": "None", "backend": ""}
             self._input_disabled = True
