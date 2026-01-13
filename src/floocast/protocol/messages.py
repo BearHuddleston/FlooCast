@@ -68,7 +68,10 @@ class _HexValueMessage(FlooMessage):
             return None
         if msgLen < 5:
             return None
-        return cls(False, int(payload[3:5].decode(cls.ENCODING), 16))
+        try:
+            return cls(False, int(payload[3:5].decode(cls.ENCODING), 16))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class _SendOnlyCommand(FlooMessage):
@@ -105,7 +108,10 @@ class _StringPayloadMessage(FlooMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) < cls.MIN_LENGTH:
             return None
-        return cls(False, payload[3:].decode("utf-8"))
+        try:
+            return cls(False, payload[3:].decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgAc(FlooMessage):
@@ -145,46 +151,49 @@ class FlooMsgAc(FlooMessage):
     @classmethod
     def create_valid_msg(cls, payload: bytes):
         msgLen = len(payload)
-        if msgLen == 5:
-            return cls(False, int(payload[3:5].decode("ascii"), 16))
-        elif msgLen == 13:
-            return cls(
-                False,
-                int(payload[3:5].decode("ascii"), 16),
-                int(payload[6:8].decode("ascii"), 16),
-                int(payload[9:13].decode("ascii"), 16),
-            )
-        elif msgLen == 18:
-            return cls(
-                False,
-                int(payload[3:5].decode("ascii"), 16),
-                int(payload[6:8].decode("ascii"), 16),
-                int(payload[9:13].decode("ascii"), 16),
-                int(payload[14:18].decode("ascii"), 16),
-            )
-        elif msgLen == 23:
-            return cls(
-                False,
-                int(payload[3:5].decode("ascii"), 16),
-                int(payload[6:8].decode("ascii"), 16),
-                int(payload[9:13].decode("ascii"), 16),
-                int(payload[14:18].decode("ascii"), 16),
-                int(payload[19:23].decode("ascii"), 16),
-            )
-        elif msgLen == 38:
-            return cls(
-                False,
-                int(payload[3:5].decode("ascii"), 16),
-                int(payload[6:8].decode("ascii"), 16),
-                int(payload[9:13].decode("ascii"), 16),
-                int(payload[14:18].decode("ascii"), 16),
-                int(payload[19:23].decode("ascii"), 16),
-                int(payload[24:28].decode("ascii"), 16),
-                int(payload[29:33].decode("ascii"), 16),
-                int(payload[34:38].decode("ascii"), 16),
-            )
-        else:
-            return cls(False, int(payload[3:5].decode("ascii"), 16))
+        try:
+            if msgLen == 5:
+                return cls(False, int(payload[3:5].decode("ascii"), 16))
+            elif msgLen == 13:
+                return cls(
+                    False,
+                    int(payload[3:5].decode("ascii"), 16),
+                    int(payload[6:8].decode("ascii"), 16),
+                    int(payload[9:13].decode("ascii"), 16),
+                )
+            elif msgLen == 18:
+                return cls(
+                    False,
+                    int(payload[3:5].decode("ascii"), 16),
+                    int(payload[6:8].decode("ascii"), 16),
+                    int(payload[9:13].decode("ascii"), 16),
+                    int(payload[14:18].decode("ascii"), 16),
+                )
+            elif msgLen == 23:
+                return cls(
+                    False,
+                    int(payload[3:5].decode("ascii"), 16),
+                    int(payload[6:8].decode("ascii"), 16),
+                    int(payload[9:13].decode("ascii"), 16),
+                    int(payload[14:18].decode("ascii"), 16),
+                    int(payload[19:23].decode("ascii"), 16),
+                )
+            elif msgLen == 38:
+                return cls(
+                    False,
+                    int(payload[3:5].decode("ascii"), 16),
+                    int(payload[6:8].decode("ascii"), 16),
+                    int(payload[9:13].decode("ascii"), 16),
+                    int(payload[14:18].decode("ascii"), 16),
+                    int(payload[19:23].decode("ascii"), 16),
+                    int(payload[24:28].decode("ascii"), 16),
+                    int(payload[29:33].decode("ascii"), 16),
+                    int(payload[34:38].decode("ascii"), 16),
+                )
+            else:
+                return cls(False, int(payload[3:5].decode("ascii"), 16))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgAd(FlooMessage):
@@ -227,7 +236,10 @@ class FlooMsgBe(_StringPayloadMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) != 5:
             return None
-        return cls(False, payload[3:].decode("utf-8"))
+        try:
+            return cls(False, payload[3:].decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgBm(_HexValueMessage):
@@ -277,7 +289,10 @@ class FlooMsgEr(FlooMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) != 5:
             return None
-        return cls(False, int(payload[3:5].decode("ascii")))
+        try:
+            return cls(False, int(payload[3:5].decode("ascii")))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgFd(_SendOnlyCommand):
@@ -311,17 +326,20 @@ class FlooMsgFn(FlooMessage):
     @classmethod
     def create_valid_msg(cls, payload: bytes):
         msgLen = len(payload)
-        if msgLen == 5:
-            return cls(False, int(payload[3:5].decode("ascii")))
-        elif msgLen == 18:
-            return cls(False, int(payload[3:5].decode("ascii")), payload[6:].decode("utf-8"))
-        elif msgLen > 19:
-            return cls(
-                False,
-                int(payload[3:5].decode("ascii")),
-                payload[6:18].decode("utf-8"),
-                payload[19:].decode("utf-8", errors="ignore"),
-            )
+        try:
+            if msgLen == 5:
+                return cls(False, int(payload[3:5].decode("ascii")))
+            elif msgLen == 18:
+                return cls(False, int(payload[3:5].decode("ascii")), payload[6:].decode("utf-8"))
+            elif msgLen > 19:
+                return cls(
+                    False,
+                    int(payload[3:5].decode("ascii")),
+                    payload[6:18].decode("utf-8"),
+                    payload[19:].decode("utf-8", errors="ignore"),
+                )
+        except (UnicodeDecodeError, ValueError):
+            return None
         return None
 
 
@@ -351,7 +369,10 @@ class FlooMsgLa(_HexValueMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) != 5:
             return None
-        return cls(False, int(payload[3:5].decode("ascii")))
+        try:
+            return cls(False, int(payload[3:5].decode("ascii")))
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgLf(_HexValueMessage):
@@ -407,9 +428,12 @@ class FlooMsgPl(FlooMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) < 20:
             return None
-        return cls(
-            False, int(payload[3:5].decode("utf-8")), payload[6:18], payload[19:], payload[3:]
-        )
+        try:
+            return cls(
+                False, int(payload[3:5].decode("utf-8")), payload[6:18], payload[19:], payload[3:]
+            )
+        except (UnicodeDecodeError, ValueError):
+            return None
 
 
 class FlooMsgSt(_HexValueMessage):
@@ -458,4 +482,7 @@ class FlooMsgVr(_StringPayloadMessage):
     def create_valid_msg(cls, payload: bytes):
         if len(payload) < 4:
             return None
-        return cls(False, payload[3:].decode("utf-8"))
+        try:
+            return cls(False, payload[3:].decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return None

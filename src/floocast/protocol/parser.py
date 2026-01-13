@@ -49,7 +49,10 @@ class FlooParser:
         msgLen = len(pkt)
         if msgLen < 2:
             return None
-        msgHeader = pkt[:2].decode("ascii")
+        try:
+            msgHeader = pkt[:2].decode("ascii")
+        except (UnicodeDecodeError, ValueError):
+            return FlooMsgUnknown(False)
         if msgHeader in FlooParser.MSG_HEADERS:
             logger.debug("create a %s message", msgHeader)
             result: FlooMessage | None = FlooParser.MSG_HEADERS[msgHeader](pkt)
