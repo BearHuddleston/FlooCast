@@ -37,7 +37,7 @@ class StateMachineDelegate(FlooStateMachineDelegate):
                     url = "https://www.flairmesh.com/Dongle/FMA120/latest"
                 latest = urllib.request.urlopen(url, context=ssl_context, timeout=10).read()
                 latest = latest.decode("utf-8").rstrip()
-            except (urllib.error.URLError, TimeoutError):
+            except (urllib.error.URLError, TimeoutError, ssl.SSLError, UnicodeDecodeError, OSError):
                 latest = "Unable"
 
             version_sizer = ctrl.version_panel_obj.sizer
