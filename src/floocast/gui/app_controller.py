@@ -476,7 +476,7 @@ class AppController:
     def _on_broadcast_name_entry(self, event):
         name = self.broadcast_panel.broadcast_name_entry.GetValue()
         name_bytes = name.encode("utf-8")
-        if 0 < len(name_bytes) < 31:
+        if 0 < len(name_bytes) < 31 and name.isprintable():
             self.state_machine.setBroadcastName(name)
         event.Skip()
 
