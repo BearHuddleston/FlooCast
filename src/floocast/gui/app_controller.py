@@ -435,6 +435,15 @@ class AppController:
             if hasattr(self.state_machine, 'inf') and self.state_machine.inf:
                 if hasattr(self.state_machine.inf, 'stop'):
                     self.state_machine.inf.stop()
+        self.prefer_lea_toggle = None
+        self.public_broadcast_toggle = None
+        self.broadcast_high_quality_toggle = None
+        self.broadcast_encrypt_toggle = None
+        self.broadcast_stop_on_idle_toggle = None
+        self.led_toggle = None
+        self.aptx_lossless_toggle = None
+        self.gatt_client_toggle = None
+        self.usb_input_toggle = None
         self.tray_icon.Destroy()
         self.frame.Destroy()
 
