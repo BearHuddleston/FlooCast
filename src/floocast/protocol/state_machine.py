@@ -78,6 +78,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def __init__(self, delegate):
         super().__init__()
+        self.daemon = True
         self._lock = RLock()
         self.state = FlooStateMachine.INIT
         self.lastCmd = None
