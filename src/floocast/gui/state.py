@@ -34,6 +34,7 @@ class GuiState:
 
     current_codec: int = 0
     device_is_le_audio_only: bool = False
+    connected_device_name: str | None = None
 
     paired_devices: list = field(default_factory=list)
 

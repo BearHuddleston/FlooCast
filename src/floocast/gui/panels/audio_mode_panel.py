@@ -35,6 +35,14 @@ class AudioModePanel:
 
         self.codec_in_use_box = wx.StaticBox(self.upper_panel, wx.ID_ANY, translate("Codec in Use"))
         self.codec_in_use_sizer = wx.StaticBoxSizer(self.codec_in_use_box, wx.VERTICAL)
+        self.connected_device_text = wx.StaticText(self.codec_in_use_box, wx.ID_ANY, "")
+        self.connected_device_text.SetForegroundColour(wx.Colour(0, 102, 204))
+        font = self.connected_device_text.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        self.connected_device_text.SetFont(font)
+        self.codec_in_use_sizer.Add(
+            self.connected_device_text, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, border=4
+        )
         self.codec_in_use_text = wx.StaticText(self.codec_in_use_box, wx.ID_ANY, codec_strings[0])
         self.codec_in_use_sizer.Add(
             self.codec_in_use_text, flag=wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, border=4

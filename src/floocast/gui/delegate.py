@@ -210,11 +210,20 @@ class StateMachineDelegate(FlooStateMachineDelegate):
     def pairedDevicesUpdateInd(self, pairedDevices):
         ctrl = self.ctrl
         ctrl.paired_device_listbox.Clear()
+        ctrl.state.paired_devices = list(pairedDevices)
         i = 0
         while i < len(pairedDevices):
             ctrl.paired_device_listbox.Append(pairedDevices[i])
             i = i + 1
         ctrl._update_new_pairing_button_state()
+
+        if pairedDevices:
+            ctrl.state.connected_device_name = pairedDevices[0]
+            ctrl.audio_mode_panel.connected_device_text.SetLabelText(pairedDevices[0])
+        else:
+            ctrl.state.connected_device_name = None
+            ctrl.audio_mode_panel.connected_device_text.SetLabelText("")
+        ctrl.audio_mode_panel.codec_in_use_sizer.Layout()
 
     def audioCodecInUseInd(
         self, codec, rssi, rate, spkSampleRate, micSampleRate, sduInt, transportDelay, presentDelay
