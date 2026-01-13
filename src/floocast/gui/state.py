@@ -6,7 +6,11 @@ from typing import Any
 
 @dataclass
 class GuiState:
-    """Holds mutable GUI state that panels need to share."""
+    """Shared GUI state container.
+
+    Note: This class is not thread-safe. All modifications should occur
+    on the GUI thread via wx.CallAfter to ensure consistency.
+    """
 
     audio_mode: int | None = None
     prefer_lea_enable: bool = False
