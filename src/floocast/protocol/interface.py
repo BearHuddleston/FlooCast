@@ -66,21 +66,19 @@ class FlooInterface:
                         self.port_locked = False
                         self.delegate.interfaceState(True, self.port_name)
                     return self.port_opened
-                except Exception as e:
-                    err_str = str(e).lower()
-                    if (
-                        "lock" in err_str
-                        or "busy" in err_str
-                        or "unavailable" in err_str
-                        or "use" in err_str
-                        or "permission" in err_str
-                    ):
+                except serial.SerialException as e:
+                    if "busy" in str(e).lower() or "lock" in str(e).lower():
                         self.delegate.connectionError("port_busy")
                         self.port_locked = True
                     else:
                         logger.error("Port error: %s", e)
                         self.delegate.connectionError("port_error")
                         self.reset()
+                    return False
+                except OSError as e:
+                    logger.error("OS error: %s", e)
+                    self.delegate.connectionError("port_error")
+                    self.reset()
                     return False
         else:
             if self.port_opened:
