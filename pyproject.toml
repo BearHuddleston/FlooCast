@@ -69,6 +69,7 @@ ignore = [
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+pythonpath = ["src"]
 
 [tool.mypy]
 python_version = "3.10"

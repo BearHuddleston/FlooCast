@@ -1,7 +1,3 @@
-import sys
-
-sys.path.insert(0, "src")
-
 from floocast.protocol.state_machine import BroadcastModeBit, FeatureBit, SourceState
 
 

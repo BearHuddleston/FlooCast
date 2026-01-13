@@ -112,7 +112,7 @@ class FlooInterface:
                             consecutive_failures = 0
                             self.delegate.handleMessage(flooMsg)
                         time.sleep(0.01)
-                    except Exception as exec0:
+                    except (serial.SerialException, OSError, ValueError) as exec0:
                         logger.exception("Error reading from port: %s", exec0)
                         self.reset()
             elif not self.port_locked:
@@ -122,7 +122,7 @@ class FlooInterface:
     def sendMsg(self, msg: FlooMessage):
         if self.port is not None and self.port.is_open and not self.isSleep:
             try:
-                logger.debug("send %s", msg.bytes.decode())
+                logger.debug("send %s", msg.header)
                 self.port.write(msg.bytes)
-            except Exception as exec0:
+            except (serial.SerialException, OSError) as exec0:
                 logger.exception("Error sending message: %s", exec0)
