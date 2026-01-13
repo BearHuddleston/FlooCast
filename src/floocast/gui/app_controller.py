@@ -429,6 +429,8 @@ class AppController:
         self.state_machine.setAudioMode(self.state.audio_mode)
 
     def _on_quit_window(self, event):
+        if self.state.looper:
+            self.state.looper.stop()
         self.tray_icon.Destroy()
         self.frame.Destroy()
 
