@@ -234,7 +234,7 @@ class FlooMsgBe(_StringPayloadMessage):
 
     @classmethod
     def create_valid_msg(cls, payload: bytes):
-        if len(payload) != 5:
+        if len(payload) < cls.MIN_LENGTH:
             return None
         try:
             return cls(False, payload[3:].decode("utf-8"))
