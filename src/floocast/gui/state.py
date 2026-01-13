@@ -34,5 +34,5 @@ class GuiState:
     input_devices: list = field(default_factory=list)
     name_input_devices: dict = field(default_factory=dict)
     saved_device: dict | None = None
-    saved_name: str = "None"
+    saved_name: str | None = None
     saved_blocksize: int | None = None

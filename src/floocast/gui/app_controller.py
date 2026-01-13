@@ -49,7 +49,7 @@ class AppController:
             start_minimized=bool(self.settings.get_item("start_minimized") or False),
             saved_blocksize=self.settings.get_item("aux_blocksize"),
             saved_device=self.settings.get_item("aux_input"),
-            saved_name=(self.settings.get_item("aux_input") or {}).get("name", "None"),
+            saved_name=(self.settings.get_item("aux_input") or {}).get("name"),
         )
 
         self._setup_localization()
@@ -379,7 +379,7 @@ class AppController:
         self.status_bar.SetStatusText(info)
 
     def _aux_input_broadcast_enable(self, enable):
-        if enable and self.state.saved_name in self.state.name_input_devices:
+        if enable and self.state.saved_name and self.state.saved_name in self.state.name_input_devices:
             self.broadcast_panel.aux_input_combo.SetValue(self.state.saved_name)
             self.state.looper.set_input(self.state.saved_device)
         else:
