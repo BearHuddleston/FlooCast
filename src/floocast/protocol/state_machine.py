@@ -196,7 +196,9 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 if isinstance(self.lastCmd, FlooMsgFn):
                     if message.btAddress is None:
                         # end of the device list
-                        _wx_call_after(self.delegate.pairedDevicesUpdateInd, self.pairedDevices)
+                        _wx_call_after(
+                            self.delegate.pairedDevicesUpdateInd, list(self.pairedDevices)
+                        )
                         cmdGetFeature = FlooMsgFt(True)
                         self.inf.sendMsg(cmdGetFeature)
                         self.lastCmd = cmdGetFeature
@@ -315,7 +317,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             elif isinstance(message, FlooMsgFn):
                 if message.btAddress is None:
                     # end of the device list
-                    _wx_call_after(self.delegate.pairedDevicesUpdateInd, self.pairedDevices)
+                    _wx_call_after(self.delegate.pairedDevicesUpdateInd, list(self.pairedDevices))
                     self.lastCmd = None
                 else:
                     with self._lock:
@@ -498,6 +500,10 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
             except RuntimeError:
                 pass
             self._reconnectTimer = None
+
+    def cleanup(self):
+        """Clean up resources before shutdown."""
+        self._cancelReconnectTimer()
 
     def _scheduleReconnect(self):
         MAX_RETRIES = 8

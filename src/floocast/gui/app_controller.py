@@ -434,6 +434,8 @@ class AppController:
         if self.state.looper:
             self.state.looper.stop()
         if hasattr(self, "state_machine") and self.state_machine:
+            if hasattr(self.state_machine, "cleanup"):
+                self.state_machine.cleanup()
             if hasattr(self.state_machine, "inf") and self.state_machine.inf:
                 if hasattr(self.state_machine.inf, "stop"):
                     self.state_machine.inf.stop()

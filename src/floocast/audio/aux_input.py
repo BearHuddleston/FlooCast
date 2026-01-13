@@ -68,7 +68,6 @@ class FlooAuxInput:
         self._last_start_name_hint: str | None = None
 
         self._xruns = 0
-        self._lock = threading.Lock()
         self._debug = False
 
         self._out_mapping: list[int] | None = None
@@ -137,6 +136,11 @@ class FlooAuxInput:
         }
 
     def set_input(self, selection: dict | None) -> None:
+        if selection is not None:
+            if not all(k in selection for k in ("id", "name", "backend")):
+                logger.warning("Invalid device selection: missing required keys")
+                return
+
         with self._lock:
             was_running = self._running
 
@@ -155,22 +159,12 @@ class FlooAuxInput:
                 "backend": selection.get("backend", ""),
             }
 
-        if selection is not None:
-            if not all(k in selection for k in ("id", "name", "backend")):
-                logger.warning("Invalid device selection: missing required keys")
-                return
-
-        if selection is None or self._is_saved_disabled(selection):
-            self._input_sel = {"id": None, "name": "None", "backend": ""}
-            self._input_disabled = True
-
             if was_running:
                 logger.info("Input changed - restarting loop...")
                 self.stop()
-
-            name_hint = self._input_sel["name"] or None
-            self._last_start_name_hint = name_hint
-            self._start_loop_internal(name_hint=name_hint)
+                name_hint = self._input_sel["name"] or None
+                self._last_start_name_hint = name_hint
+                self._start_loop_internal(name_hint=name_hint)
 
     def set_blocksize(self, blocksize: int) -> None:
         """Update blocksize (frames per block) and restart if running."""

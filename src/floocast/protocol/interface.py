@@ -114,7 +114,6 @@ class FlooInterface:
                         time.sleep(0.01)
                     except Exception as exec0:
                         logger.exception("Error reading from port: %s", exec0)
-                        self.portOpenDelay = None
                         self.reset()
             elif not self.port_locked:
                 self.reset()
