@@ -282,6 +282,13 @@ class FlooAuxInput:
     # -------------- Selection & Utilities --------------
 
     def _sd_list_devices(self) -> list[dict]:
+        """List available audio devices.
+
+        Warning: sd.query_devices() can block on some systems during device
+        enumeration. Consider running in a background thread with timeout
+        for production use.
+        """
+
         def norm(name: str) -> str:
             n = (name or "").lower()
             if "alsa" in n:
