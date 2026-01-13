@@ -114,9 +114,7 @@ class AppController:
             self._,
             self._("Prefer using LE audio for dual-mode devices"),
             lambda enable: self.state_machine.setPreferLea(enable),
-            extra_action=lambda enable: self.new_pairing_button.Enable(
-                not (enable and self.paired_device_listbox.GetCount() > 0)
-            ),
+            extra_action=lambda _: self._update_new_pairing_button_state(),
         )
         self.audio_mode_panel.lower_panel.Bind(
             wx.EVT_CHECKBOX,
@@ -579,3 +577,7 @@ class AppController:
             self.audio_mode_panel.static_box.Disable()
             self.broadcast_and_paired_panel.Disable()
             self.settings_panel_obj.panel.Disable()
+
+    def _update_new_pairing_button_state(self):
+        enabled = not (self.prefer_lea_toggle.enabled and self.paired_device_listbox.GetCount() > 0)
+        self.new_pairing_button.Enable(enabled)

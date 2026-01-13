@@ -162,7 +162,7 @@ class StateMachineDelegate(FlooStateMachineDelegate):
         while i < len(pairedDevices):
             ctrl.paired_device_listbox.Append(pairedDevices[i])
             i = i + 1
-        ctrl.new_pairing_button.Enable(False if ctrl.prefer_lea_toggle.enabled and i > 0 else True)
+        ctrl._update_new_pairing_button_state()
 
     def audioCodecInUseInd(
         self, codec, rssi, rate, spkSampleRate, micSampleRate, sduInt, transportDelay, presentDelay
