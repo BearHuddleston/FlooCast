@@ -6,6 +6,7 @@
 #   - set_output_mapping([3,4])  # force device channel mapping if needed
 
 import logging
+import threading
 from collections.abc import Sequence
 
 import numpy as np
@@ -66,6 +67,7 @@ class FlooAuxInput:
         self._last_start_name_hint: str | None = None
 
         self._xruns = 0
+        self._lock = threading.Lock()
         self._debug = False
 
         self._out_mapping: list[int] | None = None
@@ -234,7 +236,8 @@ class FlooAuxInput:
     def _start_duplex(self, add_in, out_dev, chosen_block, latency):
         def duplex_cb(indata, outdata, frames, time_info, status):
             if status:
-                self._xruns += 1
+                with self._lock:
+                    self._xruns += 1
             if indata.shape[1] == outdata.shape[1]:
                 outdata[:] = indata
                 return
