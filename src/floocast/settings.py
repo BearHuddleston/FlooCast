@@ -50,8 +50,8 @@ class FlooSettings:
             logger.exception("Failed to save settings to %s: %s", self.path, e)
             try:
                 os.remove(tmp_path)
-            except OSError:
-                pass
+            except OSError as cleanup_err:
+                logger.warning("Failed to remove temp file %s: %s", tmp_path, cleanup_err)
             raise
 
     # ---------- Generic get/set ----------
