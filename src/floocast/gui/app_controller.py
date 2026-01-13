@@ -485,7 +485,8 @@ class AppController:
     def _on_input_device_select(self, event):
         self.state.saved_name = self.broadcast_panel.aux_input_combo.GetValue()
         dev = self.state.name_input_devices.get(self.state.saved_name)
-
+        if dev is None:
+            return
         self.state.saved_device = self.state.looper.serialize_input_device(dev)
         self.settings.set_item("aux_input", self.state.saved_device)
         self.settings.save()
