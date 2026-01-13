@@ -519,7 +519,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         if self.sourceState >= SourceState.STREAMING_START:
             logger.debug("Auto-reconnect: already connected, cancelling")
             return
-        if self.sourceState != 1:
+        if self.sourceState != SourceState.IDLE:
             logger.debug("Auto-reconnect: state=%s, retrying later", self.sourceState)
             self._scheduleReconnect()
             return
@@ -531,7 +531,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
         if self.sourceState >= SourceState.STREAMING_START:
             logger.info("Auto-reconnect: success! state=%s", self.sourceState)
             self._reconnectAttempts = 0
-        elif self.sourceState == 1:
+        elif self.sourceState == SourceState.IDLE:
             logger.debug("Auto-reconnect: still idle, scheduling retry")
             self._scheduleReconnect()
 
