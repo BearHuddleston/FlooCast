@@ -548,6 +548,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def enableLed(self, onOff: int):
         with self._lock:
+            if self.feature is None:
+                return
             if self.state == FlooStateMachine.CONNECTED:
                 feature = (self.feature & 0x0E) + onOff
                 cmdLedOnOff = FlooMsgFt(True, feature)
@@ -557,6 +559,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def enableAptxLossless(self, onOff: int):
         with self._lock:
+            if self.feature is None:
+                return
             if self.state == FlooStateMachine.CONNECTED:
                 feature = (self.feature & 0x0D) + (0x02 if onOff else 0x00)
                 cmdLosslessOnOff = FlooMsgFt(True, feature)
@@ -565,6 +569,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def enableGattClient(self, onOff: int):
         with self._lock:
+            if self.feature is None:
+                return
             if self.state == FlooStateMachine.CONNECTED:
                 feature = (self.feature & 0x0B) + (0x04 if onOff else 0x00)
                 cmdGattClientOnOff = FlooMsgFt(True, feature)
@@ -573,6 +579,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
 
     def enableUsbInput(self, onOff: int):
         with self._lock:
+            if self.feature is None:
+                return
             if self.state == FlooStateMachine.CONNECTED:
                 feature = (self.feature & 0x07) + (0x08 if onOff else 0x00)
                 cmdLedOnOff = FlooMsgFt(True, feature)
