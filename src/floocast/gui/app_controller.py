@@ -552,14 +552,13 @@ class AppController:
 
             filename = file_dialog.GetPath()
             if filename:
-                os.chdir(self.app_path)
                 file_basename = os.path.splitext(filename)[0]
                 if not re.search(r"\d+$", file_basename):
                     file_basename = file_basename[:-1]
                 file_basename += self.state.first_batch
-                filename = file_basename + ".bin"
-                if os.path.isfile(filename):
-                    dfu_thread = FlooDfuThread([self.app_path, filename], self._update_dfu_info)
+                dfu_file = file_basename + ".bin"
+                if os.path.isfile(dfu_file):
+                    dfu_thread = FlooDfuThread([self.app_path, dfu_file], self._update_dfu_info)
                     dfu_thread.start()
 
     def _enable_settings_widgets(self, enable: bool):
