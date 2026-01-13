@@ -15,6 +15,9 @@ class CodecDisplayFormatter:
             return self._codec_strings[codec]
         return self._translate("Unknown")
 
+    def _is_valid_codec(self, codec: int) -> bool:
+        return 0 <= codec < len(self._codec_strings)
+
     def _is_aptx_codec(self, codec):
         return codec in (APTX_ADAPTIVE_CODEC, APTX_LOSSLESS_CODEC)
 
@@ -65,7 +68,7 @@ class CodecDisplayFormatter:
                 )
             if present_delay != 0:
                 if mic_sample_rate != 0:
-                    if codec >= len(self._codec_strings):
+                    if not self._is_valid_codec(codec):
                         return self._translate("Unknown")
                     return (
                         codec_name
@@ -80,7 +83,7 @@ class CodecDisplayFormatter:
                         + "+"
                         + self._format_delay(present_delay)
                     )
-                if codec >= len(self._codec_strings):
+                if not self._is_valid_codec(codec):
                     return self._translate("Unknown")
                 return (
                     codec_name
@@ -115,7 +118,7 @@ class CodecDisplayFormatter:
             )
 
         if spk_sample_rate != 0 and mic_sample_rate != 0:
-            if codec >= len(self._codec_strings):
+            if not self._is_valid_codec(codec):
                 return self._translate("Unknown")
             return (
                 codec_name
@@ -127,12 +130,12 @@ class CodecDisplayFormatter:
             )
 
         if spk_sample_rate != 0:
-            if codec >= len(self._codec_strings):
+            if not self._is_valid_codec(codec):
                 return self._translate("Unknown")
             return codec_name + " @ " + str(float(spk_sample_rate / 1000)) + "KHz"
 
         if mic_sample_rate != 0:
-            if codec >= len(self._codec_strings):
+            if not self._is_valid_codec(codec):
                 return self._translate("Unknown")
             return codec_name + " @ 0| " + str(float(mic_sample_rate / 1000)) + "KHz"
 
