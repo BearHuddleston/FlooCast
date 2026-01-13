@@ -29,11 +29,13 @@ class FlooInterface:
     def reset(self):
         logger.debug("reset")
         if self.port_opened:
-            logger.debug("close port")
-            self.port.close()
-        # self.port_name = None
-        self.port_opened = False
-        self.port = None
+            try:
+                self.port.close()
+            except Exception as e:
+                logger.warning("Error closing port: %s", e)
+            finally:
+                self.port_opened = False
+                self.port = None
         self.delegate.interfaceState(False, None)
 
     def monitor_port(self) -> bool:
