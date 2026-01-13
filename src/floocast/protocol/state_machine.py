@@ -183,7 +183,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 if isinstance(self.lastCmd, FlooMsgBn):
                     self.broadcastName = message.name
                     _wx_call_after(self.delegate.broadcastNameInd, message.name)
-                    self.pairedDevices.clear()
+                    with self._lock:
+                        self.pairedDevices.clear()
                     cmdGetDeviceName = FlooMsgFn(True)
                     self.inf.sendMsg(cmdGetDeviceName)
                     self.lastCmd = cmdGetDeviceName
@@ -196,7 +197,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                         self.inf.sendMsg(cmdGetFeature)
                         self.lastCmd = cmdGetFeature
                     else:
-                        self.pairedDevices.append(message.name)
+                        with self._lock:
+                            self.pairedDevices.append(message.name)
             elif isinstance(message, FlooMsgFt):
                 if isinstance(self.lastCmd, FlooMsgFt) and message.feature is not None:
                     self.feature = message.feature
@@ -256,7 +258,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                 elif isinstance(self.lastCmd, FlooMsgBe):
                     self.lastCmd = None
                 elif isinstance(self.lastCmd, FlooMsgCp):
-                    self.pairedDevices.clear()
+                    with self._lock:
+                        self.pairedDevices.clear()
                     self.delegate.pairedDevicesUpdateInd([])
                 elif isinstance(self.lastCmd, FlooMsgFt):
                     self.feature = self.lastCmd.feature
@@ -311,7 +314,8 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     _wx_call_after(self.delegate.pairedDevicesUpdateInd, self.pairedDevices)
                     self.lastCmd = None
                 else:
-                    self.pairedDevices.append(message.name)
+                    with self._lock:
+                        self.pairedDevices.append(message.name)
             elif isinstance(message, FlooMsgAc):
                 _wx_call_after(
                     self.delegate.audioCodecInUseInd,
