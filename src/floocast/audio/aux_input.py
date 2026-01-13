@@ -180,12 +180,12 @@ class FlooAuxInput:
             if self._stream:
                 try:
                     self._stream.stop()
-                except sd.PortAudioError:
-                    pass
+                except sd.PortAudioError as e:
+                    logger.warning("Error stopping audio stream: %s", e)
                 try:
                     self._stream.close()
-                except sd.PortAudioError:
-                    pass
+                except sd.PortAudioError as e:
+                    logger.warning("Error closing audio stream: %s", e)
         finally:
             self._stream = None
             self._running = False
