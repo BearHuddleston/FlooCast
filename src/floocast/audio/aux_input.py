@@ -243,8 +243,9 @@ class FlooAuxInput:
                 outdata[:, 1] = indata[:, 0]
                 return
             if indata.shape[1] == 2 and outdata.shape[1] == 1:
-                outdata[:, 0] = (
-                    (indata[:, 0].astype(np.int32) + indata[:, 1].astype(np.int32)) // 2
+                outdata[:, 0] = np.clip(
+                    (indata[:, 0].astype(np.int32) + indata[:, 1].astype(np.int32)) // 2,
+                    -32768, 32767
                 ).astype(np.int16)
 
         sd.check_input_settings(
