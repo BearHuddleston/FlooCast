@@ -257,7 +257,7 @@ class FlooStateMachine(FlooInterfaceDelegate, Thread):
                     self.lastCmd = None
                 elif isinstance(self.lastCmd, FlooMsgCp):
                     self.pairedDevices.clear()
-                    self.delegate.pairedDevicesUpdateInd([])
+                    _wx_call_after(self.delegate.pairedDevicesUpdateInd, [])
                 elif isinstance(self.lastCmd, FlooMsgFt):
                     self.feature = self.lastCmd.feature
                     self.lastCmd = None
