@@ -32,6 +32,9 @@ class GuiState:
     first_batch: str = ""
     hw_with_analog_input: int = 0
 
+    current_codec: int = 0
+    device_is_le_audio_only: bool = False
+
     paired_devices: list = field(default_factory=list)
 
     looper: Any = None
